@@ -2,6 +2,7 @@
 
 import os
 import random
+import itertools
 
 
 IDLE = 0
@@ -33,9 +34,11 @@ def get_siblings(group):
 class FarmNode(object):
     """ Class representing one machine in a compute cluster """
 
-    def __init__(self, name, cpus=24, memory=None):
+    _ids = itertools.count(0)
 
-        self.name = name
+    def __init__(self, cpus=24, memory=None, name=None):
+
+        self.name = name if name else "node%04d" % self._ids.next()
 
         self.cpus = cpus
         self.totalcpus = cpus
@@ -58,9 +61,43 @@ class FarmNode(object):
         s = "%s  (%d jobs) CPUs %2d (%2d) - RAM (%5d) %5d" % \
             (self.name, len(self._jobs), self.totalcpus, self.cpus,
              self.totalmemory, self.memory)
-        j = "\n    ".join(str(x) for x in self._jobs)
-        return s + "\n    " + j
+        if len(self._jobs) > 0:
+            j = "\n    ".join(str(x) for x in self._jobs)
+            return s + "\n    " + j
+        else:
+            return s
 
+
+class Farm(object):
+
+    def __init__(self):
+        self._m = list()
+
+    def generate_from_dist(self, cpuweights, size=None):
+        """ @cpuweights is a list of tuples, the first element of which is
+            the number of cpus and the second is a weight or a count
+
+            if @size is None (default), the second element of the items in
+            @cpuweights is an absolute count of how many n-core machines to
+            create, if size is a number, the same element is a weight that gets
+            normalized to make the total = size
+        """
+
+        if not size:
+            for cpus, count in cpuweights:
+                for n in xrange(count):
+                    self._m.append(FarmNode(cpus=cpus))
+        else:
+            total = sum(x[1] for x in cpuweights)
+            for cpus, count in cpuweights:
+                for x in xrange(int(size * (count / float(total)))):
+                    self._m.append(FarmNode(cpus=cpus))
+
+    def __str__(self):
+        return "\n".join(map(str, self._m))
+
+    def get_slots_matching(self, condition):
+        pass
 
 
 class BatchJob(object):
@@ -99,8 +136,5 @@ class JobQueue(object):
     def __str__(self):
         return "\n".join(map(str, self._q))
 
-LinuxFarm = list()
-
-
-
-
+    def get_jobs_by_state(self, state):
+        return (x for x in self._q if x.state == state)

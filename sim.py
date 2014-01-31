@@ -3,17 +3,15 @@
 
 import batchslots as bs
 
-n = bs.FarmNode("node01", cpus=24)
-j = bs.BatchJob(group="prod")
-k = bs.BatchJob(group="mp8", cpus=3)
+farm = bs.Farm()
 
 
-print n
-print j
+dist = (
+    (24, 60),
+    (32, 25),
+    (8, 15),
+)
 
-n.start_job(k)
-n.start_job(j)
+farm.generate_from_dist(dist, size=30)
 
-print n
-
-print k
+print farm
