@@ -12,6 +12,7 @@ dist = (
     (8, 15),
 )
 
-farm.generate_from_dist(dist, size=30)
+farm.generate_from_dist(dist, size=40)
+print farm, "\n\n\n"
 
-print farm
+print "\n".join(map(str, farm.get_sorting(bs.largest_first)))

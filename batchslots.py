@@ -31,7 +31,7 @@ def get_siblings(group):
     return []
 
 
-class FarmNode(object):
+class Machine(object):
     """ Class representing one machine in a compute cluster """
 
     _ids = itertools.count(0)
@@ -67,11 +67,18 @@ class FarmNode(object):
         else:
             return s
 
+def depth_first(key):
+    return key.cpus
+
+def largest_first(key):
+    return -key.totalcpus
+
 
 class Farm(object):
 
     def __init__(self):
         self._m = list()
+        self._jobsorter = depth_first
 
     def generate_from_dist(self, cpuweights, size=None):
         """ @cpuweights is a list of tuples, the first element of which is
@@ -86,18 +93,30 @@ class Farm(object):
         if not size:
             for cpus, count in cpuweights:
                 for n in xrange(count):
-                    self._m.append(FarmNode(cpus=cpus))
+                    self._m.append(Machine(cpus=cpus))
         else:
             total = sum(x[1] for x in cpuweights)
             for cpus, count in cpuweights:
                 for x in xrange(int(size * (count / float(total)))):
-                    self._m.append(FarmNode(cpus=cpus))
+                    self._m.append(Machine(cpus=cpus))
 
     def __str__(self):
         return "\n".join(map(str, self._m))
 
-    def get_slots_matching(self, condition):
-        pass
+    def get_slots_matching(self, req_cpu, req_memory):
+
+        def match(machine, cpu, ram):
+            return (machine.cpus >= cpu and machine.memory >= ram)
+
+        return [x for x in self._m if match(x, req_cpu, req_memory)]
+
+    def get_sorting(self, sort_fn):
+        return sorted(self._m, key=sort_fn)
+
+    #def negotiate_jobs(self, queue):
+
+
+
 
 
 class BatchJob(object):
