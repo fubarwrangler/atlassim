@@ -13,6 +13,10 @@ dist = (
 )
 
 farm.generate_from_dist(dist, size=40)
-print farm, "\n\n\n"
+bs.set_quotas(farm)
 
-print "\n".join(map(str, farm.get_sorting(bs.largest_first)))
+
+queue = bs.JobQueue()
+queue.fill({"grid": 2, "prod": 40, "short": 14})
+queue[4].state = bs.RUNNING
+print "\n".join(map(str, queue.match_jobs({"group": "prod", "state": bs.RUNNING})))
