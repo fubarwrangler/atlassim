@@ -3,6 +3,7 @@
 import os
 import random
 import itertools
+import pprint
 
 
 IDLE = 0
@@ -12,31 +13,52 @@ COMPLETED = 2
 class BatchExcept(Exception):
     pass
 
-groups = {
-    "prod": 30, "mp8": 10, "short": 6,
-    "long": 6, "himem": 8, "grid": 0.4
-}
+def slotweight(job):
+    return job.cpus
+
+class Groups(object):
+
+    def __init__(self):
+        self.g = {}
+
+    def add_group(self, name, quota=1, surplus=False):
+        self.g[name] = (quota, surplus)
 
 
-def set_quotas(farm):
-    global groups
-    new_g = {}
-    total = sum(groups.values())
-    size = farm.count_cpus()
-    for k, v in groups.iteritems():
-        new_g[k] = int(round((float(v) / total) * size))
-    groups = new_g
+    def calc_quota(self, farm):
+        total = sum(x[0] for x in self.g.values())
+        size = farm.count_cpus()
+        new_g = {}
+        for k, v in self.g.iteritems():
+            new_g[k] = int(round((float(v[0]) / total) * size))
+        return new_g
 
-siblings = [["short", "long"], ["prod", "mp8", "himem"], ["grid"]]
+    def sort_usage(self, farm):
+
+        usage = {}
+        for grp in self.g:
+            jobs = farm.queue.match_jobs({"group": grp, "state": RUNNING})
+            usage[grp] = sum(slotweight(x) for x in jobs)
+        return (x for x in reversed(sorted(usage, key=lambda x: usage[x])))
+
+    def set_sibling(self, group, other):
+        pass
+
+    def __contains__(self, x):
+        return x in self.g
+
+    def __str__(self):
+        return pprint.pformat(self.g)
 
 
-def get_siblings(group):
-    if group not in groups:
-        raise BatchExcept("Group %s not in groups" % group)
-    for lst in siblings:
-        if group in lst:
-            return [x for x in lst if x != group]
-    return []
+groups = Groups()
+groups.add_group("prod", 2)
+groups.add_group("short", 3)
+groups.add_group("long", 2)
+groups.add_group("mp8", 10)
+groups.add_group("grid", 0.3)
+groups.add_group("himem", 6)
+
 
 
 class Machine(object):
@@ -87,6 +109,10 @@ class Farm(object):
     def __init__(self):
         self._m = list()
         self._jobsorter = depth_first
+        self.queue = None
+
+    def __iter__(self):
+        return iter(self._m)
 
     def count_cpus(self):
         return sum(x.totalcpus for x in self._m)
@@ -115,36 +141,54 @@ class Farm(object):
                     self._m.append(Machine(cpus=cpus))
 
     def __str__(self):
-        return "\n".join(map(str, self._m))
+        return "\n".join(map(str, self))
 
-    def get_slots_matching(self, req_cpu, req_memory):
+    def get_slots_fitting(self, req_cpu, req_memory):
 
-        def match(machine, cpu, ram):
-            return (machine.cpus >= cpu and machine.memory >= ram)
+        return (x for x in self if x.cpus >= req_cpu and x.memory >= req_memory)
 
-        return [x for x in self._m if match(x, req_cpu, req_memory)]
+    def match_slots(self, query):
+
+        def check_machine(machine, query):
+            for k, v in query.iteritems():
+                if getattr(machine, k) != v:
+                    return False
+            return True
+
+        return (x for x in self if check_machine(x, query))
 
     def sort_by(self, sort_fn):
-        return sorted(self._m, key=sort_fn)
+        return sorted(self, key=sort_fn)
+
+    def attach_queue(self, q):
+        assert (self.queue is None)
+        self.queue = q
 
     def negotiate_jobs(self, queue):
+        pass
 
-        for job in (x for x in queue if x.state == IDLE):
-            pass
+
 
 
 class BatchJob(object):
     """ Class representing one job for the batch system """
 
-    def __init__(self, cpus=1, memory=None, group="grid", length=None):
+    def __init__(self, cpus=1, memory=None, group="grid", length=None,
+                 len_avg=None, len_splay=60):
         self.cpus = cpus
         self.memory = memory if memory is not None else cpus * 2000
         if group not in groups:
             raise BatchExcept("Group %s not found" % group)
         self.group = group
 
-        # default is about an hour
-        self.length = length if length is not None else random.randint(3500, 3700)
+        if length is not None:
+            self.length = length
+        elif len_avg is not None:
+            self.length = len_avg + 2 * (random.random() * len_splay) - len_splay
+        elif length is None and len_avg is None:
+            self.length = random.random() * 200 + 3500
+        else:
+            raise AttributeError("length or len_avg must be defined, not both")
 
         self.current_node = None
         self.slotid = None
@@ -182,7 +226,6 @@ class JobQueue(object):
         return "\n".join(map(str, self._q))
 
     def match_jobs(self, query):
-        conditions = []
 
         def check_job(job, query):
             for k, v in query.iteritems():
@@ -190,8 +233,7 @@ class JobQueue(object):
                     return False
             return True
 
-        return (x for x in self._q if check_job(x, query))
-
+        return (x for x in self if check_job(x, query))
 
     def __iter__(self):
         return iter(self._q)
