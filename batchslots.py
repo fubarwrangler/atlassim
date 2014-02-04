@@ -1,9 +1,15 @@
 #!/usr/bin/python
 
 import os
+import sys
 import random
 import itertools
 import pprint
+
+import logging
+
+logging.basicConfig(stream=sys.stdout)
+log = logging.getLogger('')
 
 
 IDLE = 0
@@ -165,7 +171,9 @@ class Farm(object):
         self.queue = q
 
     def negotiate_jobs(self, queue):
-        pass
+
+        for x in self.queue:
+            pass
 
 
 
@@ -193,10 +201,17 @@ class BatchJob(object):
         self.current_node = None
         self.slotid = None
         self.state = IDLE
+        self.runtime = 0
 
     @staticmethod
     def state_name(state):
         return ['I', 'R', 'C'][state]
+
+    def advance_time(self, step):
+        self.runtime += step
+        if self.runtime >= self.length:
+            self.state = COMPLETED
+            self.queue.remove(self)
 
     def __str__(self):
         s = "%2d-core  %5dMb  %10s   %s" % (self.cpus, self.memory, self.group,
