@@ -8,7 +8,8 @@ import pprint
 
 import logging
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
+                    format="(%(levelname)5s) %(message)s")
 log = logging.getLogger('')
 
 
@@ -81,9 +82,15 @@ class Machine(object):
         self.num_jobs += 1
 
     def __str__(self):
+
+        return "%s (%d jobs) (%d/%d cpu) (%d/%d ram)" % \
+                (self.name, len(self._jobs), self.cpus, self.totalcpus,
+                 self.memory, self.totalmemory)
+
+    def long(self):
         s = "%s  (%d jobs) CPUs %2d (%2d) - RAM (%5d) %5d" % \
-            (self.name, len(self._jobs), self.totalcpus, self.cpus,
-             self.totalmemory, self.memory)
+            (self.name, len(self._jobs), self.totalcpus - self.cpus, self.totalcpus,
+             self.totalmemory - self.memory, self.totalmemory)
         if len(self._jobs) > 0:
             j = "\n    ".join(str(x) for x in self._jobs)
             return s + "\n    " + j
@@ -91,13 +98,13 @@ class Machine(object):
             return s
 
 def depth_first(key):
-    return key.cpus
+    return -key.cpus
 
 def largest_first(key):
-    return -key.totalcpus
+    return key.totalcpus
 
 def breadth_first(key):
-    return key.num_jobs
+    return key.cpus
 
 
 class Farm(object):
@@ -121,6 +128,9 @@ class Farm(object):
         return sorted(self._m, key=self._jobsorter)
 
     def set_negotiatior_rank(self, fn):
+        """ Jobsorter functions need to return the best slot with the
+            highest number
+        """
         self._jobsorter = fn
 
     @staticmethod
@@ -148,11 +158,11 @@ class Farm(object):
                     self._m.append(Machine(cpus=cpus))
 
     def __str__(self):
-        return "\n".join(map(str, self))
+        return "\n".join([x.long() for x in self])
 
-    def get_slots_fitting(self, req_cpu, req_memory):
+    def get_slots_fitting(self, job):
 
-        return (x for x in self if x.cpus >= req_cpu and x.memory >= req_memory)
+        return (x for x in self if x.cpus >= job.cpus and x.memory >= job.memory)
 
     def match_slots(self, query):
 
@@ -176,7 +186,7 @@ class Farm(object):
         self.groups = g
 
     def sort_groups_by_usage(self):
-        """ Return group usage in negotiation order, least used to most. """
+        """ Return group and usage in negotiation order, least used to most. """
 
         assert (self.groups is not None)
 
@@ -184,26 +194,32 @@ class Farm(object):
         for grp in self.groups:
             jobs = self.queue.match_jobs({"group": grp, "state": RUNNING})
             usage[grp] = sum(self.slotweight(x) for x in jobs)
-        return (x for x in sorted(usage, key=lambda x: usage[x]))
+        return [(x,usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
     def negotiate_jobs(self):
 
         quotas = self.groups.calc_quota(self)
         log.debug("groups: %s" % quotas)
 
-        for grp in self.sort_groups_by_usage():
-            log.info("Negotiate for %s: quota=%s", grp, quotas[grp])
-            for job in self.queue.match_jobs({"group": grp, "state": IDLE}):
-                log.info("Idle job (%s-%s)", job.cpus, job.memory)
-                fit_machines = self.get_slots_fitting(job.cpus, job.memory)
-                fit_machines = sorted(fit_machines, key=self._jobsorter)
-                log.info("%d machines match job", len(fit_machines))
-                if fit_machines:
-                    log.debug("Match machine %s", fit_machines[0])
-                    fit_machines[0].start_job(job)
+        for group, usage in self.sort_groups_by_usage():
+            quota = quotas[group]
+            log.info("Negotiate for %s: usage=%d quota=%d", group, usage, quota)
+            for job in self.queue.match_jobs({"group": group, "state": IDLE}):
+                candidate_weight = self.slotweight(job)
+                if usage + candidate_weight > quota:
+                    log.debug("Job '%s' would put '%s' over quota", job, group)
+                    continue
 
+                matching = self.get_slots_fitting(job)
 
-
+                try:
+                    best = max(matching, key=self._jobsorter)
+                except ValueError:
+                    log.info("No slots found matching job %s", job)
+                else:
+                    log.info("Job '%s' matched to slot '%s'", job, best)
+                    best.start_job(job)
+                    usage += candidate_weight
 
 
 
@@ -236,9 +252,19 @@ class BatchJob(object):
             self.state = COMPLETED
             self.queue.remove(self)
 
+    def state_char(self):
+        return ['I', 'R', 'C'][self.state]
+
+
     def __str__(self):
+        x = "%s: %d CPU %d Mb" % (self.group, self.cpus, self.memory)
+        if self.state == RUNNING:
+            x = "slot%d " % self.slotid + x
+        return x
+
+    def long(self):
         s = "%2d-core  %5dMb  %10s   %s" % (self.cpus, self.memory, self.group,
-                                            ['I', 'R', 'C'][self.state])
+                                            self.state_char())
         if self.current_node and self.slotid is not None:
             s += "   (%s@%s)" % (self.slotid, self.current_node)
         return s
@@ -261,7 +287,7 @@ class JobQueue(object):
         return self._q[n]
 
     def __str__(self):
-        return "\n".join(map(str, self._q))
+        return "\n".join([x.long() for x in self._q])
 
     def match_jobs(self, query):
 
