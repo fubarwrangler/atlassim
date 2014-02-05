@@ -8,7 +8,7 @@ import pprint
 
 import logging
 
-logging.basicConfig(stream=sys.stdout)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 log = logging.getLogger('')
 
 
@@ -19,13 +19,16 @@ COMPLETED = 2
 class BatchExcept(Exception):
     pass
 
-def slotweight(job):
-    return job.cpus
-
 class Groups(object):
 
     def __init__(self):
         self.g = {}
+
+    def __iter__(self):
+        return iter(self.g)
+
+    def __getitem__(self, k):
+        return self.g[k]
 
     def add_group(self, name, quota=1, surplus=False):
         self.g[name] = (quota, surplus)
@@ -39,14 +42,6 @@ class Groups(object):
             new_g[k] = int(round((float(v[0]) / total) * size))
         return new_g
 
-    def sort_usage(self, farm):
-
-        usage = {}
-        for grp in self.g:
-            jobs = farm.queue.match_jobs({"group": grp, "state": RUNNING})
-            usage[grp] = sum(slotweight(x) for x in jobs)
-        return (x for x in reversed(sorted(usage, key=lambda x: usage[x])))
-
     def set_sibling(self, group, other):
         pass
 
@@ -55,16 +50,6 @@ class Groups(object):
 
     def __str__(self):
         return pprint.pformat(self.g)
-
-
-groups = Groups()
-groups.add_group("prod", 2)
-groups.add_group("short", 3)
-groups.add_group("long", 2)
-groups.add_group("mp8", 10)
-groups.add_group("grid", 0.3)
-groups.add_group("himem", 6)
-
 
 
 class Machine(object):
@@ -80,6 +65,7 @@ class Machine(object):
         self.totalcpus = cpus
         self.memory = memory if memory is not None else 1000 * 2 * cpus
         self.totalmemory = self.memory
+        self.num_jobs = 0
 
         self._jobs = list()
 
@@ -92,6 +78,7 @@ class Machine(object):
         job.current_node = self.name
 
         self._jobs.append(job)
+        self.num_jobs += 1
 
     def __str__(self):
         s = "%s  (%d jobs) CPUs %2d (%2d) - RAM (%5d) %5d" % \
@@ -109,13 +96,17 @@ def depth_first(key):
 def largest_first(key):
     return -key.totalcpus
 
+def breadth_first(key):
+    return key.num_jobs
+
 
 class Farm(object):
 
-    def __init__(self):
+    def __init__(self, ranking=depth_first):
         self._m = list()
-        self._jobsorter = depth_first
         self.queue = None
+        self.groups = None
+        self.set_negotiatior_rank(depth_first)
 
     def __iter__(self):
         return iter(self._m)
@@ -125,6 +116,16 @@ class Farm(object):
 
     def count_memory(self):
         return sum(x.totalmemory for x in self._m)
+
+    def best_machines(self):
+        return sorted(self._m, key=self._jobsorter)
+
+    def set_negotiatior_rank(self, fn):
+        self._jobsorter = fn
+
+    @staticmethod
+    def slotweight(job):
+        return job.cpus
 
     def generate_from_dist(self, cpuweights, size=None):
         """ @cpuweights is a list of tuples, the first element of which is
@@ -170,10 +171,38 @@ class Farm(object):
         assert (self.queue is None)
         self.queue = q
 
-    def negotiate_jobs(self, queue):
+    def attach_groups(self, g):
+        assert (self.groups is None)
+        self.groups = g
 
-        for x in self.queue:
-            pass
+    def sort_groups_by_usage(self):
+        """ Return group usage in negotiation order, least used to most. """
+
+        assert (self.groups is not None)
+
+        usage = {}
+        for grp in self.groups:
+            jobs = self.queue.match_jobs({"group": grp, "state": RUNNING})
+            usage[grp] = sum(self.slotweight(x) for x in jobs)
+        return (x for x in sorted(usage, key=lambda x: usage[x]))
+
+    def negotiate_jobs(self):
+
+        quotas = self.groups.calc_quota(self)
+        log.debug("groups: %s" % quotas)
+
+        for grp in self.sort_groups_by_usage():
+            log.info("Negotiate for %s: quota=%s", grp, quotas[grp])
+            for job in self.queue.match_jobs({"group": grp, "state": IDLE}):
+                log.info("Idle job (%s-%s)", job.cpus, job.memory)
+                fit_machines = self.get_slots_fitting(job.cpus, job.memory)
+                fit_machines = sorted(fit_machines, key=self._jobsorter)
+                log.info("%d machines match job", len(fit_machines))
+                if fit_machines:
+                    log.debug("Match machine %s", fit_machines[0])
+                    fit_machines[0].start_job(job)
+
+
 
 
 
@@ -185,8 +214,6 @@ class BatchJob(object):
                  len_avg=None, len_splay=60):
         self.cpus = cpus
         self.memory = memory if memory is not None else cpus * 2000
-        if group not in groups:
-            raise BatchExcept("Group %s not found" % group)
         self.group = group
 
         if length is not None:
@@ -203,10 +230,6 @@ class BatchJob(object):
         self.state = IDLE
         self.runtime = 0
 
-    @staticmethod
-    def state_name(state):
-        return ['I', 'R', 'C'][state]
-
     def advance_time(self, step):
         self.runtime += step
         if self.runtime >= self.length:
@@ -215,7 +238,7 @@ class BatchJob(object):
 
     def __str__(self):
         s = "%2d-core  %5dMb  %10s   %s" % (self.cpus, self.memory, self.group,
-                                            self.state_name(self.state))
+                                            ['I', 'R', 'C'][self.state])
         if self.current_node and self.slotid is not None:
             s += "   (%s@%s)" % (self.slotid, self.current_node)
         return s
