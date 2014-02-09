@@ -22,11 +22,15 @@ dist = (
 
 farm.generate_from_dist(dist, size=20)
 
-queue = bs.JobQueue()
-queue.fill({"grid": 2, "prod": 40, "short": 114, "long": 61})
+queue1 = bs.JobQueue()
+queue1.fill({"grid": 2, "prod": 40, "short": 114, "long": 61})
+
+queue2 = bs.JobQueue()
+queue2.fill({"grid": 50, "mp8": 60, "prod": 14, "long": 23})
 
 
-farm.attach_queue(queue)
+farm.attach_queue(queue1)
+farm.attach_queue(queue2)
 farm.attach_groups(groups)
 # queue[4].state=bs.RUNNING
 # queue[3].state=bs.RUNNING
@@ -35,7 +39,6 @@ farm.attach_groups(groups)
 # for x in queue.match_jobs({"group": "grid"}):
 #     x.state=bs.RUNNING
 farm.set_negotiatior_rank(bs.depth_first)
-farm.negotiate_jobs()
 
+farm.negotiate_jobs()
 print farm
-print farm.sort_groups_by_usage()

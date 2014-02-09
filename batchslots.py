@@ -7,6 +7,8 @@ import itertools
 import pprint
 
 import logging
+from collections import defaultdict
+
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
                     format="(%(levelname)5s) %(message)s")
@@ -111,7 +113,7 @@ class Farm(object):
 
     def __init__(self, ranking=depth_first):
         self._m = list()
-        self.queue = None
+        self.queues = list()
         self.groups = None
         self.set_negotiatior_rank(depth_first)
 
@@ -178,8 +180,7 @@ class Farm(object):
         return sorted(self, key=sort_fn)
 
     def attach_queue(self, q):
-        assert (self.queue is None)
-        self.queue = q
+        self.queues.append(q)
 
     def attach_groups(self, g):
         assert (self.groups is None)
@@ -190,13 +191,20 @@ class Farm(object):
 
         assert (self.groups is not None)
 
-        usage = {}
+        usage = defaultdict(int)
         for grp in self.groups:
-            jobs = self.queue.match_jobs({"group": grp, "state": RUNNING})
-            usage[grp] = sum(self.slotweight(x) for x in jobs)
+            for queue in self.queues:
+                jobs = queue.match_jobs({"group": grp, "state": RUNNING})
+                usage[grp] += sum(self.slotweight(x) for x in jobs)
         return [(x,usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
     def negotiate_jobs(self):
+
+        for n, queue in enumerate(self.queues):
+            log.info("Negotiate with queue %d - %d jobs", n + 1, len(queue))
+            self._negotiate_queue(queue)
+
+    def _negotiate_queue(self, queue):
 
         quotas = self.groups.calc_quota(self)
         log.debug("groups: %s" % quotas)
@@ -204,9 +212,14 @@ class Farm(object):
         for group, usage in self.sort_groups_by_usage():
             quota = quotas[group]
             log.info("Negotiate for %s: usage=%d quota=%d", group, usage, quota)
-            for job in self.queue.match_jobs({"group": group, "state": IDLE}):
+            for job in queue.match_jobs({"group": group, "state": IDLE}):
                 candidate_weight = self.slotweight(job)
-                if usage + candidate_weight > quota:
+
+                if usage >= quota:
+                    log.info("Group %s usage(%d) >= quota(%d), end",
+                              group, usage, quota)
+                    break
+                elif usage + candidate_weight > quota:
                     log.debug("Job '%s' would put '%s' over quota", job, group)
                     continue
 
@@ -298,6 +311,9 @@ class JobQueue(object):
             return True
 
         return (x for x in self if check_job(x, query))
+
+    def __len__(self):
+        return len(self._q)
 
     def __iter__(self):
         return iter(self._q)
