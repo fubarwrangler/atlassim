@@ -83,6 +83,19 @@ class Machine(object):
         self._jobs.append(job)
         self.num_jobs += 1
 
+    def end_job(self, job):
+        self.cpus += job.cpus
+        self.memory += job.memory
+        self._jobs.remove(job)
+        self.num_jobs -= 1
+
+    def advance_time(self, step):
+        for job in self._jobs:
+            job.advance_time(step)
+            if job.state == COMPLETED:
+                self.end_job(job)
+
+
     def __str__(self):
 
         return "%s (%d jobs) (%d/%d cpu) (%d/%d ram)" % \
@@ -234,6 +247,9 @@ class Farm(object):
                     best.start_job(job)
                     usage += candidate_weight
 
+    def print_usage(self):
+        for
+
 
 
 class BatchJob(object):
@@ -258,12 +274,13 @@ class BatchJob(object):
         self.slotid = None
         self.state = IDLE
         self.runtime = 0
+        self.queue = None
 
     def advance_time(self, step):
         self.runtime += step
         if self.runtime >= self.length:
             self.state = COMPLETED
-            self.queue.remove(self)
+            #self.queue.remove(self)
 
     def state_char(self):
         return ['I', 'R', 'C'][self.state]
@@ -289,6 +306,7 @@ class JobQueue(object):
         self._q = list()
 
     def add_job(self, jobobj):
+        jobobj.queue = self._q
         self._q.append(jobobj)
 
     def fill(self, group_count):
