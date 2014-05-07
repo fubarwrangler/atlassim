@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import os
 import sys
 import random
 import itertools
@@ -19,8 +18,10 @@ IDLE = 0
 RUNNING = 1
 COMPLETED = 2
 
+
 class BatchExcept(Exception):
     pass
+
 
 class Groups(object):
 
@@ -35,7 +36,6 @@ class Groups(object):
 
     def add_group(self, name, quota=1, surplus=False):
         self.g[name] = (quota, surplus)
-
 
     def calc_quota(self, farm):
         total = sum(x[0] for x in self.g.values())
@@ -68,9 +68,12 @@ class Machine(object):
         self.totalcpus = cpus
         self.memory = memory if memory is not None else 1000 * 2 * cpus
         self.totalmemory = self.memory
-        self.num_jobs = 0
+        self.num_jobs = 0.0
 
         self._jobs = list()
+
+    def __iter__(self):
+        return iter(self._jobs)
 
     def start_job(self, job):
         self.cpus -= job.cpus
@@ -83,11 +86,24 @@ class Machine(object):
         self._jobs.append(job)
         self.num_jobs += 1
 
+    def end_job(self, job):
+        self.cpus += job.cpus
+        self.memory += job.memory
+        self._jobs.remove(job)
+        self.num_jobs -= 1
+
+    def advance_time(self, step):
+        for job in self._jobs:
+            job.advance_time(step)
+            if job.state == COMPLETED:
+                log.debug("Job %s completed on %s", job, self)
+                self.end_job(job)
+
     def __str__(self):
 
         return "%s (%d jobs) (%d/%d cpu) (%d/%d ram)" % \
-                (self.name, len(self._jobs), self.cpus, self.totalcpus,
-                 self.memory, self.totalmemory)
+               (self.name, len(self._jobs), self.cpus, self.totalcpus,
+                self.memory, self.totalmemory)
 
     def long(self):
         s = "%s  (%d jobs) CPUs %2d (%2d) - RAM (%5d) %5d" % \
@@ -99,11 +115,14 @@ class Machine(object):
         else:
             return s
 
+
 def depth_first(key):
     return -key.cpus
 
+
 def largest_first(key):
     return key.totalcpus
+
 
 def breadth_first(key):
     return key.cpus
@@ -115,7 +134,8 @@ class Farm(object):
         self._m = list()
         self.queues = list()
         self.groups = None
-        self.set_negotiatior_rank(depth_first)
+        self.set_negotiatior_rank(ranking)
+        self.time = 0
 
     def __iter__(self):
         return iter(self._m)
@@ -162,6 +182,13 @@ class Farm(object):
     def __str__(self):
         return "\n".join([x.long() for x in self])
 
+    def print_usage(self):
+        usage = defaultdict(int)
+        for machine in self._m:
+            for job in machine:
+                usage[job.group] += self.slotweight(job)
+        print usage
+
     def get_slots_fitting(self, job):
 
         return (x for x in self if x.cpus >= job.cpus and x.memory >= job.memory)
@@ -186,6 +213,11 @@ class Farm(object):
         assert (self.groups is None)
         self.groups = g
 
+    def advance_time(self, step):
+        for machine in self:
+            machine.advance_time(step)
+        self.time += step
+
     def sort_groups_by_usage(self):
         """ Return group and usage in negotiation order, least used to most. """
 
@@ -196,7 +228,7 @@ class Farm(object):
             for queue in self.queues:
                 jobs = queue.match_jobs({"group": grp, "state": RUNNING})
                 usage[grp] += sum(self.slotweight(x) for x in jobs)
-        return [(x,usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
+        return [(x, usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
     def negotiate_jobs(self):
 
@@ -217,7 +249,7 @@ class Farm(object):
 
                 if usage >= quota:
                     log.info("Group %s usage(%d) >= quota(%d), end",
-                              group, usage, quota)
+                             group, usage, quota)
                     break
                 elif usage + candidate_weight > quota:
                     log.debug("Job '%s' would put '%s' over quota", job, group)
@@ -233,7 +265,6 @@ class Farm(object):
                     log.info("Job '%s' matched to slot '%s'", job, best)
                     best.start_job(job)
                     usage += candidate_weight
-
 
 
 class BatchJob(object):
@@ -258,16 +289,16 @@ class BatchJob(object):
         self.slotid = None
         self.state = IDLE
         self.runtime = 0
+        self.queue = None
 
     def advance_time(self, step):
         self.runtime += step
         if self.runtime >= self.length:
             self.state = COMPLETED
-            self.queue.remove(self)
+            #self.queue.remove(self)
 
     def state_char(self):
         return ['I', 'R', 'C'][self.state]
-
 
     def __str__(self):
         x = "%s: %d CPU %d Mb" % (self.group, self.cpus, self.memory)
@@ -289,6 +320,7 @@ class JobQueue(object):
         self._q = list()
 
     def add_job(self, jobobj):
+        jobobj.queue = self._q
         self._q.append(jobobj)
 
     def fill(self, group_count):
