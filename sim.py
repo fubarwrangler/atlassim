@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 
-import batchslots as bs
+import computefarm as bs
 
 farm = bs.Farm()
 
