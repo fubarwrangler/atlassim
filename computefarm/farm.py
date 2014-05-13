@@ -75,12 +75,14 @@ class Farm(object):
     def __str__(self):
         return "\n".join([x.long() for x in self])
 
-    def print_usage(self):
+    def get_usage(self):
         usage = defaultdict(int)
+
         for machine in self._m:
             for job in machine:
                 usage[job.group] += self.slotweight(job)
-        print usage
+
+        return usage
 
     def get_slots_fitting(self, job):
 

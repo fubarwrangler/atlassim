@@ -32,7 +32,7 @@ class BatchJob(object):
         self.runtime += step
         if self.runtime >= self.length:
             self.state = COMPLETED
-            #self.queue.remove(self)
+            self.queue.remove(self)
 
     def state_char(self):
         return ['I', 'R', 'C'][self.state]
@@ -49,4 +49,3 @@ class BatchJob(object):
         if self.current_node and self.slotid is not None:
             s += "   (%s@%s)" % (self.slotid, self.current_node)
         return s
-
