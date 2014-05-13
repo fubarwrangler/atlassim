@@ -8,7 +8,7 @@ class BatchJob(object):
     """ Class representing one job for the batch system """
 
     def __init__(self, cpus=1, memory=None, group="grid", length=None,
-                 len_avg=None, len_splay=60):
+                 len_avg=None, len_splay=600):
         self.cpus = cpus
         self.memory = memory if memory is not None else cpus * 2000
         self.group = group
@@ -18,7 +18,7 @@ class BatchJob(object):
         elif len_avg is not None:
             self.length = len_avg + 2 * (random.random() * len_splay) - len_splay
         elif length is None and len_avg is None:
-            self.length = random.random() * 200 + 3500
+            self.length = random.gauss(3600, 400)
         else:
             raise AttributeError("length or len_avg must be defined, not both")
 

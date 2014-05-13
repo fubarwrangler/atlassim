@@ -1,11 +1,13 @@
 #!/usr/bin/python
 
-
 import computefarm as bs
 import stats as st
 
-farm = bs.Farm()
+import numpy as np
+import matplotlib.pyplot as plt
+#import matplotlib.animation as animation
 
+farm = bs.Farm()
 
 groups = bs.Groups()
 groups.add_group("prod", 2)
@@ -14,7 +16,7 @@ groups.add_group("long", 2)
 groups.add_group("mp8", 10)
 groups.add_group("grid", 0.3)
 groups.add_group("himem", 6)
-st.make_groups(groups)
+st.make_groups(groups, 2600)
 
 dist = (
     (24, 10),
@@ -37,14 +39,19 @@ farm.attach_queue(queue)
 #farm.set_negotiatior_rank(bs.breadth_first)
 farm.negotiate_jobs()
 
-for i in range(5000):
+for i in range(10000):
     farm.advance_time(1)
     if not i % 100:
         farm.negotiate_jobs()
         #print farm.queues[0]
-    usage = farm.get_usage()
-    for g in groups:
-        st.push_data(g, usage[g])
-    print st.get_data('long')
+    if not i % 6:
+        usage = farm.get_usage()
+        for g in groups:
+            st.push_data(g, usage[g])
+        #print st.get_data('long')
 
+#print np.vstack((x[1] for x in st.get_groups()))
+#print [x[1] for x in st.get_groups()]
 
+plt.stackplot(np.arange(st.get_size()), np.vstack((x[1] for x in st.get_groups())))
+plt.show()

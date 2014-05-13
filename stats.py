@@ -1,19 +1,28 @@
 #!/usr/bin/python
 
-import collections
+import numpy as np
 
 
 g_data = dict()
 
 
-def make_groups(groups):
+def make_groups(groups, depth=10):
     for x in groups:
-        g_data[x] = collections.deque(maxlen=10)
+        #g_data[x] = collections.deque(maxlen=depth)
+        g_data[x] = np.zeros((depth), int)
 
 
 def push_data(group, usage):
-    g_data[group].append(usage)
+    g_data[group] = np.roll(g_data[group], -1)
+    g_data[group][-1] = usage
 
 
 def get_data(group):
     return g_data[group]
+
+
+def get_groups():
+    return sorted(g_data.iteritems())
+
+def get_size():
+    return len(g_data[g_data.keys()[0]])
