@@ -53,5 +53,7 @@ for i in range(10000):
 #print np.vstack((x[1] for x in st.get_groups()))
 #print [x[1] for x in st.get_groups()]
 
-plt.stackplot(np.arange(st.get_size()), np.vstack((x[1] for x in st.get_groups())))
+plt.stackplot(np.arange(st.get_size()), np.vstack((x[1] for x in st.get_groups())),
+              colors=('#00FF00', '#FF0000', '#E3CF57', '#0000FF', '#FF00FF', '#00FFFF',
+                      '#FFFF00', '#FFC0CB', '#C67171', '#000000'))
 plt.show()
