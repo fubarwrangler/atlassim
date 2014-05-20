@@ -4,7 +4,7 @@ import sys
 import logging
 
 __all__ = ['IDLE', 'RUNNING', 'COMPLETED', 'BatchExcept',
-           'Farm', 'Groups', 'BatchJob', 'Machine', 'JobQueue']
+           'Farm', 'Group', 'BatchJob', 'Machine', 'JobQueue']
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
@@ -20,7 +20,7 @@ class BatchExcept(Exception):
     pass
 
 from farm import Farm
-from groups import Groups
+from groups import Group
 from job import BatchJob
 from machine import Machine
 from queue import JobQueue

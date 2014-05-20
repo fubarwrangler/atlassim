@@ -119,7 +119,7 @@ class Farm(object):
         assert (self.groups is not None)
 
         usage = defaultdict(int)
-        for grp in self.groups:
+        for grp in (x.name for x in self.groups.active_groups()):
             for queue in self.queues:
                 jobs = queue.match_jobs({"group": grp, "state": RUNNING})
                 usage[grp] += sum(self.slotweight(x) for x in jobs)

@@ -9,13 +9,15 @@ import matplotlib.pyplot as plt
 
 farm = bs.Farm()
 
-groups = bs.Groups()
-groups.add_group("prod", 2)
-groups.add_group("short", 3)
-groups.add_group("long", 2)
-groups.add_group("mp8", 10)
-groups.add_group("grid", 0.3)
-groups.add_group("himem", 6)
+groups = bs.Group('')
+groups.add_child("atlas")
+groups.add_child("grid", 0.3)
+groups['atlas'].add_child('production')
+groups['atlas'].add_child('analysis')
+groups['atlas']['production'].add_child('prod', 6)
+groups['atlas']['production'].add_child('mp8', 9)
+groups['atlas']['analysis'].add_child('short', 7)
+groups['atlas']['analysis'].add_child('long', 5)
 st.make_groups(groups, 2600)
 
 dist = (
@@ -46,7 +48,7 @@ for i in range(10000):
         #print farm.queues[0]
     if not i % 6:
         usage = farm.get_usage()
-        for g in groups:
+        for g in (x.name for x in groups.active_groups()):
             st.push_data(g, usage[g])
         #print st.get_data('long')
 
