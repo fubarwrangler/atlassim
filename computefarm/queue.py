@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-from job import BatchJob
-
 
 class JobQueue(object):
 
@@ -11,11 +9,6 @@ class JobQueue(object):
     def add_job(self, jobobj):
         jobobj.queue = self._q
         self._q.append(jobobj)
-
-    def fill(self, group_count):
-        for grp, cnt in group_count.iteritems():
-            for x in xrange(cnt):
-                self.add_job(BatchJob(group=grp))
 
     def __getitem__(self, n):
         return self._q[n]

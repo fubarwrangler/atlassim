@@ -1,26 +1,17 @@
 #!/usr/bin/python
 
-import random
 from computefarm import COMPLETED, IDLE, RUNNING
 
 
 class BatchJob(object):
     """ Class representing one job for the batch system """
 
-    def __init__(self, cpus=1, memory=None, group="grid", length=None,
-                 len_avg=None, len_splay=600):
-        self.cpus = cpus
-        self.memory = memory if memory is not None else cpus * 2000
-        self.group = group
+    def __init__(self, cpus=1, memory=None, group="grid", length=3600):
 
-        if length is not None:
-            self.length = length
-        elif len_avg is not None:
-            self.length = len_avg + 2 * (random.random() * len_splay) - len_splay
-        elif length is None and len_avg is None:
-            self.length = random.gauss(3600, 400)
-        else:
-            raise AttributeError("length or len_avg must be defined, not both")
+        self.cpus = cpus if cpus else 1
+        self.memory = memory if memory is not None else self.cpus * 2000
+        self.group = group
+        self.length = length
 
         self.current_node = None
         self.slotid = None

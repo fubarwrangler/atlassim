@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import computefarm as bs
+from computefarm.farm import breadth_first, depth_first
 import stats as st
 
 import numpy as np
@@ -38,7 +39,8 @@ for x in queue.match_jobs({"group": "mp8"}):
 farm.attach_groups(groups)
 farm.attach_queue(queue)
 
-#farm.set_negotiatior_rank(bs.breadth_first)
+#farm.set_negotiatior_rank(breadth_first)
+farm.set_negotiatior_rank(depth_first)
 farm.negotiate_jobs()
 
 for i in range(10000):
@@ -51,9 +53,6 @@ for i in range(10000):
         for g in (x.name for x in groups.active_groups()):
             st.push_data(g, usage[g])
         #print st.get_data('long')
-
-#print np.vstack((x[1] for x in st.get_groups()))
-#print [x[1] for x in st.get_groups()]
 
 plt.stackplot(np.arange(st.get_size()), np.vstack((x[1] for x in st.get_groups())),
               colors=('#00FF00', '#FF0000', '#E3CF57', '#0000FF', '#FF00FF', '#00FFFF',

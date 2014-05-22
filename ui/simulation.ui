@@ -90,6 +90,32 @@
      </item>
     </layout>
    </widget>
+   <widget class="QPushButton" name="quitBtn">
+    <property name="geometry">
+     <rect>
+      <x>510</x>
+      <y>530</y>
+      <width>100</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Quit</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="startstop">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>530</y>
+      <width>100</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Run</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -113,7 +139,7 @@
   <customwidget>
    <class>MplWidget</class>
    <extends>QWidget</extends>
-   <header>mplwidget</header>
+   <header location="global">ui.mplwidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
