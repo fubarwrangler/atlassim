@@ -6,7 +6,7 @@ from collections import defaultdict
 from computefarm import RUNNING, IDLE
 from machine import Machine
 
-log = logging.getLogger('')
+log = logging.getLogger('sim')
 
 
 def depth_first(key):

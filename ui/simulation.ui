@@ -6,31 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>631</width>
-    <height>615</height>
+    <width>818</width>
+    <height>570</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QLineEdit" name="lineEdit">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>491</width>
-      <height>23</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="MplWidget" name="mpl" native="true">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>40</y>
-      <width>601</width>
-      <height>381</height>
+      <width>791</width>
+      <height>411</height>
      </rect>
     </property>
     <property name="sizePolicy">
@@ -43,58 +33,11 @@
      <string notr="true">background-color: rgb(221, 221, 221);</string>
     </property>
    </widget>
-   <widget class="QWidget" name="horizontalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>440</y>
-      <width>211</width>
-      <height>131</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QSlider" name="verticalSlider_3">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QSlider" name="verticalSlider_5">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QSlider" name="verticalSlider_4">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QSlider" name="verticalSlider_2">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QSlider" name="verticalSlider">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
    <widget class="QPushButton" name="quitBtn">
     <property name="geometry">
      <rect>
-      <x>510</x>
-      <y>530</y>
+      <x>710</x>
+      <y>520</y>
       <width>100</width>
       <height>24</height>
      </rect>
@@ -103,11 +46,61 @@
      <string>Quit</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="startstop">
+   <widget class="QPushButton" name="stepBtn">
     <property name="geometry">
      <rect>
-      <x>380</x>
-      <y>530</y>
+      <x>20</x>
+      <y>520</y>
+      <width>100</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Single Step</string>
+    </property>
+    <property name="autoRepeat">
+     <bool>true</bool>
+    </property>
+    <property name="autoRepeatInterval">
+     <number>500</number>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="stepSize">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>520</y>
+      <width>56</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="wrapping">
+     <bool>false</bool>
+    </property>
+    <property name="buttonSymbols">
+     <enum>QAbstractSpinBox::UpDownArrows</enum>
+    </property>
+    <property name="specialValueText">
+     <string/>
+    </property>
+    <property name="minimum">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <number>1000</number>
+    </property>
+    <property name="singleStep">
+     <number>1</number>
+    </property>
+    <property name="value">
+     <number>10</number>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="startStop">
+    <property name="geometry">
+     <rect>
+      <x>350</x>
+      <y>490</y>
       <width>100</width>
       <height>24</height>
      </rect>
@@ -115,23 +108,13 @@
     <property name="text">
      <string>Run</string>
     </property>
-   </widget>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>631</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuWhat">
-    <property name="title">
-     <string>What</string>
+    <property name="autoRepeat">
+     <bool>false</bool>
+    </property>
+    <property name="flat">
+     <bool>false</bool>
     </property>
    </widget>
-   <addaction name="menuWhat"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

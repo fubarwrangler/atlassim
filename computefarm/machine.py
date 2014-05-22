@@ -5,7 +5,7 @@ import itertools
 
 from computefarm import COMPLETED, RUNNING
 
-log = logging.getLogger('')
+log = logging.getLogger('sim')
 
 
 class Machine(object):
