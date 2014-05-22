@@ -25,13 +25,17 @@ class MainWindow(QtGui.QMainWindow):
         super(MainWindow, self).__init__(parent)
         uic.loadUi('ui/simulation.ui', self)
 
-        self.sim = Simulation()
+        self.sim = Simulation(400)
         self.sim.add_jobs(sample_map)
-        self.timer = QtCore.QTimer()
+
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.advance_interval)
 
         self.quitBtn.clicked.connect(self.close)
         self.stepBtn.clicked.connect(self.advance_interval)
-        #self.updatePlot.clicked.connect(self.update_plot)
+        self.startStop.clicked.connect(self.toggle_run)
+
+        self.auto_run = False
 
     def advance_interval(self):
         self.sim.step(self.stepSize.value())
@@ -42,6 +46,16 @@ class MainWindow(QtGui.QMainWindow):
         self.mpl.canvas.ax.cla()
         self.mpl.canvas.ax.stackplot(x, y, colors=colors)
         self.mpl.canvas.draw()
+
+    def toggle_run(self):
+        if self.auto_run:
+            self.timer.stop()
+            self.startStop.setText('Run')
+            self.auto_run = False
+        else:
+            self.timer.start(350)
+            self.startStop.setText('Stop')
+            self.auto_run = True
 
 
 if __name__ == "__main__":

@@ -71,6 +71,7 @@ class Farm(object):
             for cpus, count in cpuweights:
                 for x in xrange(int(size * (count / float(total)))):
                     self._m.append(Machine(cpus=cpus))
+        log.info("Added %d machines to farm", len(self._m))
 
     def __str__(self):
         return "\n".join([x.long() for x in self])

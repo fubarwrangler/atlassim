@@ -68,8 +68,8 @@
    <widget class="QSpinBox" name="stepSize">
     <property name="geometry">
      <rect>
-      <x>130</x>
-      <y>520</y>
+      <x>20</x>
+      <y>490</y>
       <width>56</width>
       <height>23</height>
      </rect>
@@ -99,8 +99,8 @@
    <widget class="QPushButton" name="startStop">
     <property name="geometry">
      <rect>
-      <x>350</x>
-      <y>490</y>
+      <x>340</x>
+      <y>520</y>
       <width>100</width>
       <height>24</height>
      </rect>
@@ -113,6 +113,19 @@
     </property>
     <property name="flat">
      <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="stepsizelabel">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>490</y>
+      <width>71</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>step</string>
     </property>
    </widget>
   </widget>

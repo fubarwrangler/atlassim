@@ -22,7 +22,7 @@ default_queue_properties = {
 
 class Simulation(object):
 
-    def __init__(self, negotiate_interval=150, stat_freq=10):
+    def __init__(self, cores, negotiate_interval=150, stat_freq=10):
 
         self.farm = cf.Farm()
         dist = (
@@ -30,7 +30,7 @@ class Simulation(object):
             (32, 90),
             (8, 238),
         )
-        self.farm.generate_from_dist(dist, size=200)
+        self.farm.generate_from_dist(dist, size=cores)
 
         root = self.setup_groups(cf.Group('<root>'))
         self.farm.attach_groups(root)
@@ -103,21 +103,18 @@ class Simulation(object):
                 self._update_stat()
                 self.next_stat = self.farm.time + self.int_stat
 
-    def make_plotdata(self):
+    def display_order(self):
+        return sorted(self._stat.keys())
+
+    def make_plotdata(self, groups='all'):
 
         x = np.arange(self._stat_size)
-        y = np.vstack((x[1] for x in sorted(self._stat.iteritems())))
+        if groups == 'all':
+            y = np.vstack((v for k,v in sorted(self._stat.iteritems())))
+        else:
+            y = np.vstack((x[1] for x in sorted(self._stat.iteritems())))
 
         return x, y
-
-    def plot(self):
-        x, y = self.make_plotdata()
-        plt.stackplot(x, y, colors=('#00FF00', '#FF0000', '#E3CF57', '#0000FF',
-                                    '#FF00FF', '#00FFFF', '#FFFF00', '#FFC0CB',
-                                    '#C67171', '#000000')
-                      )
-
-        plt.show()
 
 
 if __name__ == '__main__':
