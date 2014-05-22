@@ -1,18 +1,25 @@
 #!/usr/bin/python
 
+import computefarm as bs
+from computefarm.farm import breadth_first, depth_first
+import stats as st
 
-import batchslots as bs
+import numpy as np
+import matplotlib.pyplot as plt
+#import matplotlib.animation as animation
 
 farm = bs.Farm()
 
-
-groups = bs.Groups()
-groups.add_group("prod", 2)
-groups.add_group("short", 3)
-groups.add_group("long", 2)
-groups.add_group("mp8", 10)
-groups.add_group("grid", 0.3)
-groups.add_group("himem", 6)
+groups = bs.Group('')
+groups.add_child("atlas")
+groups.add_child("grid", 0.3)
+groups['atlas'].add_child('production')
+groups['atlas'].add_child('analysis')
+groups['atlas']['production'].add_child('prod', 6)
+groups['atlas']['production'].add_child('mp8', 9)
+groups['atlas']['analysis'].add_child('short', 7)
+groups['atlas']['analysis'].add_child('long', 5)
+st.make_groups(groups, 2600)
 
 dist = (
     (24, 10),
@@ -22,23 +29,32 @@ dist = (
 
 farm.generate_from_dist(dist, size=20)
 
-queue1 = bs.JobQueue()
-queue1.fill({"grid": 2, "prod": 40, "short": 114, "long": 61})
+queue = bs.JobQueue()
+queue.fill({"grid": 20, "prod": 40, "short": 114, "long": 61, "mp8": 13})
+for x in queue.match_jobs({"group": "mp8"}):
+    x.cpus = 8
+    x.memory *= 6
 
-queue2 = bs.JobQueue()
-queue2.fill({"grid": 50, "mp8": 60, "prod": 14, "long": 23})
 
-
-farm.attach_queue(queue1)
-farm.attach_queue(queue2)
 farm.attach_groups(groups)
-# queue[4].state=bs.RUNNING
-# queue[3].state=bs.RUNNING
-# queue[2].state=bs.RUNNING
-# queue[49].state=bs.RUNNING
-# for x in queue.match_jobs({"group": "grid"}):
-#     x.state=bs.RUNNING
-farm.set_negotiatior_rank(bs.depth_first)
+farm.attach_queue(queue)
 
+#farm.set_negotiatior_rank(breadth_first)
+farm.set_negotiatior_rank(depth_first)
 farm.negotiate_jobs()
-print farm
+
+for i in range(10000):
+    farm.advance_time(1)
+    if not i % 100:
+        farm.negotiate_jobs()
+        #print farm.queues[0]
+    if not i % 6:
+        usage = farm.get_usage()
+        for g in (x.name for x in groups.active_groups()):
+            st.push_data(g, usage[g])
+        #print st.get_data('long')
+
+plt.stackplot(np.arange(st.get_size()), np.vstack((x[1] for x in st.get_groups())),
+              colors=('#00FF00', '#FF0000', '#E3CF57', '#0000FF', '#FF00FF', '#00FFFF',
+                      '#FFFF00', '#FFC0CB', '#C67171', '#000000'))
+plt.show()
