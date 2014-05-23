@@ -17,6 +17,13 @@ class Group(object):
         new.parent = self
         self.children[name] = new
 
+    def set_character(self, num=0, cpu=1, mem=None, avg=3600, std=600):
+        self.num = num
+        self.cpu = cpu
+        self.mem = mem if mem is not None else cpu * 2000
+        self.avg = avg
+        self.std = std
+
     def walk(self):
         if not self.children:
             return

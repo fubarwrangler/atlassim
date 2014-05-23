@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+import logging
+from computefarm import IDLE, RUNNING
+
+log = logging.getLogger('sim')
+
 
 class JobQueue(object):
 
@@ -8,6 +13,7 @@ class JobQueue(object):
 
     def add_job(self, jobobj):
         jobobj.queue = self._q
+        log.debug("Added job %s to queue", str(jobobj))
         self._q.append(jobobj)
 
     def __getitem__(self, n):
@@ -25,6 +31,12 @@ class JobQueue(object):
             return True
 
         return (x for x in self if check_job(x, query))
+
+    def get_group_idle(self, group):
+        return len([x for x in self if x.state == IDLE and x.group == group])
+
+    def get_group_running(self, group):
+        return len([x for x in self if x.state == RUNNING and x.group == group])
 
     def __len__(self):
         return len(self._q)

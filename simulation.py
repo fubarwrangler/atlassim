@@ -4,25 +4,24 @@ import computefarm as cf
 from computefarm.farm import depth_first
 import random
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 
 HOUR = 60 * 60
 
 default_queue_properties = {
-    'grid':     {'memory': 750, 'len': HOUR, 'std': 0.6 * HOUR},
-    'prod':     {'len': 8 * HOUR, 'std': 3 * HOUR},
-    'short':    {'len': 1.2 * HOUR, 'std': 300},
-    'long':     {'len': 16 * HOUR, 'std': 3 * HOUR},
-    'test':     {'len': 8 * HOUR, 'cpu': 3},
-    'mp8':      {'len': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'memory': 6000}
+    'grid':     { 'num': 50, 'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
+    'prod':     { 'num': 50, 'avg': 8 * HOUR, 'std': 3 * HOUR},
+    'short':    { 'num': 50, 'avg': 1.2 * HOUR, 'std': 300},
+    'long':     { 'num': 50, 'avg': 16 * HOUR, 'std': 3 * HOUR},
+    'test':     { 'num': 50, 'avg': 8 * HOUR, 'cpu': 3},
+    'mp8':      { 'num': 50, 'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
 }
 
 
 class Simulation(object):
 
-    def __init__(self, cores, negotiate_interval=150, stat_freq=10):
+    def __init__(self, cores, negotiate_interval=150, stat_freq=10, submit_interval=200):
 
         self.farm = cf.Farm()
         dist = (
@@ -44,11 +43,13 @@ class Simulation(object):
         # How many seconds per negotiation/stat gathering cycle
         self.int_stat = stat_freq
         self.int_negotiate = negotiate_interval
+        self.int_submit = submit_interval
         self.next_stat = 0
         self.next_negotiate = 0
+        self.next_submit = 0
 
         # How many seconds to simulate each step
-        self.sec_per_step = 10
+        self.sec_per_step = 5
 
     def _init_stat(self, hist_size):
         self._stat = {}
@@ -72,20 +73,17 @@ class Simulation(object):
         root['atlas']['production'].add_child('test', 9)
         root['atlas']['analysis'].add_child('short', 7)
         root['atlas']['analysis'].add_child('long', 5)
+
+        for x in root.walk():
+            if x.name in default_queue_properties:
+                x.set_character(**default_queue_properties[x.name])
         return root
 
-    def add_jobs(self, jdf_map):
-        for group, data in jdf_map.items():
-            info = default_queue_properties[group]
-            info.update(data)
-
-            cpu = info.get('cpu')
-            mem = info.get('memory')
-            avglen = info.get('len', 3600)
-            stddev = info.get('std', avglen / 6)
-            for n in xrange(info.get('count', 1)):
-                length = abs(random.gauss(avglen, stddev))
-                job = cf.BatchJob(group=group, cpus=cpu, memory=mem,
+    def add_jobs(self):
+        for group in self.farm.groups.active_groups():
+            for n in xrange(group.num - self.farm.queue.get_group_idle(group.name)):
+                length = abs(random.gauss(group.avg, group.std))
+                job = cf.BatchJob(group=group.name, cpus=group.cpu, memory=group.mem,
                                   length=length)
                 self.queue.add_job(job)
 
@@ -94,6 +92,10 @@ class Simulation(object):
         for i in xrange(dt):
 
             self.farm.advance_time(self.sec_per_step)
+
+            if self.farm.time > self.next_submit:
+                self.add_jobs()
+                self.next_submit = self.farm.time + self.int_submit
 
             if self.farm.time > self.next_negotiate:
                 self.farm.negotiate_jobs()
@@ -110,9 +112,9 @@ class Simulation(object):
 
         x = np.arange(self._stat_size)
         if groups == 'all':
-            y = np.vstack((v for k,v in sorted(self._stat.iteritems())))
+            y = np.vstack((v for k, v in sorted(self._stat.iteritems())))
         else:
-            y = np.vstack((x[1] for x in sorted(self._stat.iteritems())))
+            y = np.vstack((v for k, v in sorted(self._stat.iteritems()) if k in groups))
 
         return x, y
 

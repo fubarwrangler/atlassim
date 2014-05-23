@@ -103,7 +103,7 @@ class Farm(object):
         return sorted(self, key=sort_fn)
 
     def attach_queue(self, q):
-        self.queues.append(q)
+        self.queue = q
 
     def attach_groups(self, g):
         assert (self.groups is None)
@@ -121,26 +121,20 @@ class Farm(object):
 
         usage = defaultdict(int)
         for grp in (x.name for x in self.groups.active_groups()):
-            for queue in self.queues:
-                jobs = queue.match_jobs({"group": grp, "state": RUNNING})
-                usage[grp] += sum(self.slotweight(x) for x in jobs)
+            jobs = self.queue.match_jobs({"group": grp, "state": RUNNING})
+            usage[grp] += sum(self.slotweight(x) for x in jobs)
         return [(x, usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
     def negotiate_jobs(self):
 
-        for n, queue in enumerate(self.queues):
-            log.info("Negotiate with queue %d - %d jobs", n + 1, len(queue))
-            self._negotiate_queue(queue)
-
-    def _negotiate_queue(self, queue):
-
+        log.info("Negotiate with queue -- %d jobs", len(self.queue))
         quotas = self.groups.calc_quota(self)
         log.debug("groups: %s" % quotas)
 
         for group, usage in self.sort_groups_by_usage():
             quota = quotas[group]
             log.info("Negotiate for %s: usage=%d quota=%d", group, usage, quota)
-            for job in queue.match_jobs({"group": group, "state": IDLE}):
+            for job in self.queue.match_jobs({"group": group, "state": IDLE}):
                 candidate_weight = self.slotweight(job)
 
                 if usage >= quota:
