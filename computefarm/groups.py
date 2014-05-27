@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-import pprint
-
 
 class Group(object):
 

@@ -87,6 +87,9 @@ class ManageQueues(QtGui.QDialog):
             new_layout = QtGui.QVBoxLayout()
             label = QtGui.QLabel(g.name, self)
             surplus = QtGui.QCheckBox("Surplus", self)
+            surplus.setObjectName('surplusBox_%s' % g.name)
+            surplus.setCheckState(2 if g.surplus else 0)
+            surplus.stateChanged.connect(self.set_surplus)
             new_layout.addWidget(label)
             if active:
                 slider = QtGui.QSlider(self)
@@ -96,11 +99,16 @@ class ManageQueues(QtGui.QDialog):
 
                 value_label = QtGui.QLabel(str(slider.value()), self)
                 value_label.setObjectName("valLabel_%s" % g.name)
+
                 quota_edit = QtGui.QLineEdit(str(g.norm_quota), self)
+                quota_edit.setObjectName("editQuota_%s" % g.name)
                 quota_edit.setValidator(QtGui.QRegExpValidator(regex, quota_edit))
+                quota_edit.textEdited.connect(self.quota_changed)
+
                 new_layout.addWidget(slider)
                 new_layout.addWidget(value_label)
                 new_layout.addWidget(quota_edit)
+
                 c['valueLabel'] = value_label
                 c['quotaEdit'] = quota_edit
                 c['slider'] = slider
@@ -109,9 +117,6 @@ class ManageQueues(QtGui.QDialog):
             new_layout.addWidget(surplus)
             self.slidersLayout.addLayout(new_layout)
             self.controls[g.name] = c
-
-        #for name, slider in self.sliders.items():
-            #slider.valueChanged.connect(self.update_)
 
     @staticmethod
     def extract_group(sender):
@@ -123,7 +128,14 @@ class ManageQueues(QtGui.QDialog):
         group = self.sim.farm.groups.get_by_name(group_name)
         group.num = demand
 
+    def quota_changed(self, val):
+        group = self.sim.farm.groups.get_by_name(self.extract_group(self.sender()))
+        group.quota = int(val)
 
+    def set_surplus(self, state):
+        group = self.sim.farm.groups.get_by_name(self.extract_group(self.sender()))
+        group.surplus = bool(state)
+        print group.name, group.surplus
 
 
 if __name__ == "__main__":
