@@ -11,6 +11,8 @@ class Group(object):
         self.parent = None
         self.surplus = surplus
         self.children = {}
+        self.norm_quota = None
+        self.demand = 0
 
     def add_child(self, name, quota=0, surplus=False):
         new = Group(name, quota=quota, surplus=surplus)
@@ -27,10 +29,18 @@ class Group(object):
     def walk(self):
         if not self.children:
             return
-        for x in self:
+        for x in self.children.values():
             yield x
             for y in x.walk():
                 yield y
+
+    def get_by_name(self, name):
+        if self.name == name:
+            return self
+        for x in self.walk():
+            if name == x.name:
+                return x
+        raise Exception("No group %s found" % name)
 
     def names(self):
         return (x.name for x in self.walk())
@@ -49,20 +59,22 @@ class Group(object):
         size = farm.count_cpus()
         new_g = {}
         for grp in self.walk():
-            new_g[grp.name] = int(round((float(grp.quota) / total) * size))
+            normed = int(round((float(grp.quota) / total) * size))
+            new_g[grp.name] = normed
+            grp.norm_quota = normed
         return new_g
 
     def __repr__(self):
         return '<0x%x> %s (%d)' % (id(self), self.name, self.quota)
 
     def __iter__(self):
-        return iter(self.children.values())
+        return iter(self.walk())
 
     def __contains__(self, key):
         return (len([x.name for x in self.walk() if x.name == key]) > 0)
 
     def __str__(self):
-        return pprint.pformat(self.g)
+        return '%s: surplus %s, quota %d, num %d' % (self.name, self.surplus, self.quota, self.num)
 
 
 if __name__ == '__main__':

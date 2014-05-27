@@ -3,6 +3,7 @@
 import computefarm as cf
 from computefarm.farm import depth_first
 import random
+import logging
 
 import numpy as np
 
@@ -10,13 +11,15 @@ import numpy as np
 HOUR = 60 * 60
 
 default_queue_properties = {
-    'grid':     { 'num': 50, 'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
-    'prod':     { 'num': 50, 'avg': 8 * HOUR, 'std': 3 * HOUR},
-    'short':    { 'num': 50, 'avg': 1.2 * HOUR, 'std': 300},
-    'long':     { 'num': 50, 'avg': 16 * HOUR, 'std': 3 * HOUR},
-    'test':     { 'num': 50, 'avg': 8 * HOUR, 'cpu': 3},
-    'mp8':      { 'num': 50, 'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
+    'grid':     { 'num': 2, 'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
+    'prod':     { 'num': 0, 'avg': 8 * HOUR, 'std': 3 * HOUR},
+    'short':    { 'num': 0, 'avg': 1.2 * HOUR, 'std': 300},
+    'long':     { 'num': 0, 'avg': 16 * HOUR, 'std': 3 * HOUR},
+    'test':     { 'num': 0, 'avg': 8 * HOUR, 'cpu': 3},
+    'mp8':      { 'num': 0, 'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
 }
+
+log = logging.getLogger('sim')
 
 
 class Simulation(object):
@@ -81,7 +84,11 @@ class Simulation(object):
 
     def add_jobs(self):
         for group in self.farm.groups.active_groups():
-            for n in xrange(group.num - self.farm.queue.get_group_idle(group.name)):
+            num_submit = group.num - self.farm.queue.get_group_idle(group.name)
+            if num_submit <= 0:
+                continue
+            log.info("Submitting %d more %s jobs", num_submit, group.name)
+            for n in xrange(num_submit):
                 length = abs(random.gauss(group.avg, group.std))
                 job = cf.BatchJob(group=group.name, cpus=group.cpu, memory=group.mem,
                                   length=length)
