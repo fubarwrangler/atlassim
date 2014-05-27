@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>834</width>
-    <height>438</height>
+    <width>785</width>
+    <height>354</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,8 +22,8 @@
   <widget class="QDialogButtonBox" name="closeButton">
    <property name="geometry">
     <rect>
-     <x>740</x>
-     <y>410</y>
+     <x>690</x>
+     <y>330</y>
      <width>91</width>
      <height>25</height>
     </rect>
@@ -37,8 +37,8 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>811</width>
-     <height>391</height>
+     <width>761</width>
+     <height>311</height>
     </rect>
    </property>
    <layout class="QHBoxLayout" name="slidersLayout"/>

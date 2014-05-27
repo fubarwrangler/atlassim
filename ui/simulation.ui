@@ -36,7 +36,7 @@
    <widget class="QPushButton" name="quitBtn">
     <property name="geometry">
      <rect>
-      <x>700</x>
+      <x>710</x>
       <y>620</y>
       <width>100</width>
       <height>24</height>
@@ -99,8 +99,8 @@
    <widget class="QPushButton" name="startStop">
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>610</y>
+      <x>10</x>
+      <y>540</y>
       <width>100</width>
       <height>24</height>
      </rect>
@@ -131,8 +131,8 @@
    <widget class="QToolButton" name="toolButton">
     <property name="geometry">
      <rect>
-      <x>760</x>
-      <y>10</y>
+      <x>770</x>
+      <y>470</y>
       <width>30</width>
       <height>24</height>
      </rect>
@@ -144,8 +144,8 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>630</x>
-      <y>10</y>
+      <x>640</x>
+      <y>470</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -170,8 +170,8 @@
    <widget class="QSlider" name="simspeedSlider">
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>570</y>
+      <x>10</x>
+      <y>500</y>
       <width>160</width>
       <height>23</height>
      </rect>
@@ -204,8 +204,8 @@
    <widget class="QLabel" name="simspeedLabel">
     <property name="geometry">
      <rect>
-      <x>220</x>
-      <y>550</y>
+      <x>20</x>
+      <y>480</y>
       <width>91</width>
       <height>16</height>
      </rect>
@@ -217,10 +217,10 @@
    <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>440</x>
+      <x>210</x>
       <y>460</y>
-      <width>371</width>
-      <height>141</height>
+      <width>351</width>
+      <height>191</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="statusLayout"/>

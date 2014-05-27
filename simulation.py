@@ -11,7 +11,7 @@ import numpy as np
 HOUR = 60 * 60
 
 default_queue_properties = {
-    'grid':     { 'num': 2, 'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
+    'grid':     { 'num': 0, 'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
     'prod':     { 'num': 0, 'avg': 8 * HOUR, 'std': 3 * HOUR},
     'short':    { 'num': 0, 'avg': 1.2 * HOUR, 'std': 300},
     'long':     { 'num': 0, 'avg': 16 * HOUR, 'std': 3 * HOUR},
