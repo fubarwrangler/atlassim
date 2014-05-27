@@ -49,7 +49,7 @@ class Machine(object):
         for job in self._jobs:
             job.advance_time(step)
             if job.state == COMPLETED:
-                log.debug("Job %s completed on %s", job, self)
+                log.info("Job %s completed on %s", job, self)
                 self.end_job(job)
 
     def __str__(self):

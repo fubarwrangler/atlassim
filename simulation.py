@@ -68,14 +68,14 @@ class Simulation(object):
 
     def setup_groups(self, root):
         root.add_child('atlas')
-        root.add_child('grid', 0.3)
+        root.add_child('grid', 3)
         root['atlas'].add_child('production')
         root['atlas'].add_child('analysis')
-        root['atlas']['production'].add_child('prod', 6)
-        root['atlas']['production'].add_child('mp8', 9)
-        root['atlas']['production'].add_child('test', 9)
-        root['atlas']['analysis'].add_child('short', 7)
-        root['atlas']['analysis'].add_child('long', 5)
+        root['atlas']['production'].add_child('prod', 40)
+        root['atlas']['production'].add_child('mp8', 30)
+        root['atlas']['production'].add_child('test', 7)
+        root['atlas']['analysis'].add_child('short', 10)
+        root['atlas']['analysis'].add_child('long', 10)
 
         for x in root.walk():
             if x.name in default_queue_properties:

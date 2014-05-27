@@ -7,7 +7,7 @@ __all__ = ['IDLE', 'RUNNING', 'COMPLETED', 'BatchExcept',
            'Farm', 'Group', 'BatchJob', 'Machine', 'JobQueue']
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
+logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format="(%(levelname)5s) %(message)s")
 
 

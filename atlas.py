@@ -33,6 +33,22 @@ class MainWindow(QtGui.QMainWindow):
 
         self.qedit = ManageQueues(self.sim)
         self.toolButton.clicked.connect(self.qedit.show)
+        self.make_status_layout()
+
+    def _format_grpstr(self, grp):
+        idle = self.sim.farm.queue.get_group_idle(grp.name)
+        run = self.sim.farm.queue.get_group_running(grp.name)
+        return '%s (q=%d,s=%s): (run/idle) %d/%d' % \
+               (grp.name, grp.norm_quota, grp.surplus, run, idle)
+
+    def make_status_layout(self):
+        self._stat_labels = {}
+        for grp in self.sim.farm.groups.active_groups():
+
+            lbl = QtGui.QLabel(self._format_grpstr(grp))
+            lbl.setObjectName('grpStatInfo_%s' % grp.name)
+            self._stat_labels[grp.name] = lbl
+            self.statusLayout.addWidget(lbl)
 
     def change_speed(self, val):
 
@@ -45,12 +61,15 @@ class MainWindow(QtGui.QMainWindow):
     def advance_interval(self):
         self.sim.step(self.stepSize.value())
         self.timeLabel.setText('t=%d' % self.sim.farm.time)
+        for grp, lbl in self._stat_labels.items():
+            group = self.sim.farm.groups.get_by_name(grp)
+            lbl.setText(self._format_grpstr(group))
         self.update_plot()
 
     def update_plot(self):
         x, y = self.sim.make_plotdata()
         self.mpl.canvas.ax.cla()
-        self.mpl.canvas.ax.stackplot(x, y, colors=colors)
+        self.mpl.canvas.ax.stackplot(x, y, colors=colors, baseline='zero')
         self.mpl.canvas.draw()
 
     def toggle_run(self):
@@ -60,7 +79,7 @@ class MainWindow(QtGui.QMainWindow):
             self.auto_run = False
         else:
             self.timer.start(self.period)
-            self.startStop.setText('Stop')
+            self.startStop.setText('Pause')
             self.auto_run = True
 
 
@@ -100,7 +119,7 @@ class ManageQueues(QtGui.QDialog):
                 value_label = QtGui.QLabel(str(slider.value()), self)
                 value_label.setObjectName("valLabel_%s" % g.name)
 
-                quota_edit = QtGui.QLineEdit(str(g.norm_quota), self)
+                quota_edit = QtGui.QLineEdit(str(g.quota), self)
                 quota_edit.setObjectName("editQuota_%s" % g.name)
                 quota_edit.setValidator(QtGui.QRegExpValidator(regex, quota_edit))
                 quota_edit.textEdited.connect(self.quota_changed)
