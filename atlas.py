@@ -10,7 +10,7 @@ colors = ('#00FF00', '#FF0000', '#E3CF57', '#0000FF', '#FF00FF', '#00FFFF',
           '#FFFF00', '#FFC0CB', '#C67171', '#000000')
 
 
-class MainWindow(QtGui.QMainWindow):
+class MainWindow(QtGui.QMainWindow, layoutgen.MainStats):
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -27,6 +27,8 @@ class MainWindow(QtGui.QMainWindow):
         self.stepBtn.clicked.connect(self.advance_interval)
         self.startStop.clicked.connect(self.toggle_run)
         self.simspeedSlider.valueChanged.connect(self.change_speed)
+        self.to_plot = set(g.name for g in self.sim.farm.groups.active_groups())
+        self.all_groups = self.sim.display_order()
 
         # ms between firing timer
         self.period = 350
@@ -35,21 +37,6 @@ class MainWindow(QtGui.QMainWindow):
         self.qedit = ManageQueues(self.sim)
         self.toolButton.clicked.connect(self.qedit.show)
         self.make_status_layout()
-
-    def _format_grpstr(self, grp):
-        idle = self.sim.farm.queue.get_group_idle(grp.name)
-        run = self.sim.farm.queue.get_group_running(grp.name)
-        return '%s (q=%d,s=%s): (run/idle) %d/%d' % \
-               (grp.name, grp.norm_quota, grp.surplus, run, idle)
-
-    def make_status_layout(self):
-        self._stat_labels = {}
-        for grp in self.sim.farm.groups.active_groups():
-
-            lbl = QtGui.QLabel(self._format_grpstr(grp))
-            lbl.setObjectName('grpStatInfo_%s' % grp.name)
-            self._stat_labels[grp.name] = lbl
-            self.statusLayout.addWidget(lbl)
 
     def change_speed(self, val):
 
@@ -68,10 +55,15 @@ class MainWindow(QtGui.QMainWindow):
         self.update_plot()
 
     def update_plot(self):
-        x, y = self.sim.make_plotdata()
+        x, y = self.sim.make_plotdata(self.to_plot)
         self.mpl.canvas.ax.cla()
-        self.mpl.canvas.ax.stackplot(x, y, colors=colors, baseline='zero')
+        self.mpl.canvas.ax.stackplot(x, y, colors=self.gen_color(), baseline='zero')
         self.mpl.canvas.draw()
+
+    def gen_color(self):
+        for n, grp in enumerate(self.all_groups):
+            if grp in self.to_plot:
+                yield colors[n]
 
     def toggle_run(self):
         if self.auto_run:

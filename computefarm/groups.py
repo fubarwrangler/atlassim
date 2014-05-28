@@ -11,6 +11,7 @@ class Group(object):
         self.children = {}
         self.norm_quota = None
         self.demand = 0
+        self.usage = 0
 
     def add_child(self, name, quota=0, surplus=False):
         new = Group(name, quota=quota, surplus=surplus)

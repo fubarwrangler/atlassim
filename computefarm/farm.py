@@ -129,6 +129,7 @@ class Farm(object):
 
         log.info("Negotiate with queue -- %d jobs", len(self.queue))
         quotas = self.groups.calc_quota(self)
+        #surplus = self.calc_surplus(self.groups, )
 
         for group, usage in self.sort_groups_by_usage():
             quota = quotas[group]

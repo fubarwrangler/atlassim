@@ -3,6 +3,10 @@
 from PyQt4 import QtGui, QtCore
 
 
+def extract_group(sender):
+    return str(sender.objectName()).split("_")[-1]
+
+
 class QueueManage(object):
 
     def add_controls(self):
@@ -50,20 +54,56 @@ class QueueManage(object):
             self.slidersLayout.addLayout(new_layout)
             self.controls[g.name] = c
 
-    @staticmethod
-    def extract_group(sender):
-        return str(sender.objectName()).split("_")[-1]
-
     def slider_changed(self, demand):
-        group_name = self.extract_group(self.sender())
+        group_name = extract_group(self.sender())
         self.controls[group_name]['valueLabel'].setText(str(demand))
         group = self.sim.farm.groups.get_by_name(group_name)
         group.num = demand
 
     def quota_changed(self, val):
-        group = self.sim.farm.groups.get_by_name(self.extract_group(self.sender()))
+        group = self.sim.farm.groups.get_by_name(extract_group(self.sender()))
         group.quota = int(val)
 
     def set_surplus(self, state):
-        group = self.sim.farm.groups.get_by_name(self.extract_group(self.sender()))
+        group = self.sim.farm.groups.get_by_name(extract_group(self.sender()))
         group.surplus = bool(state)
+
+
+class MainStats(object):
+
+    def _format_grpstr(self, grp):
+        idle = self.sim.farm.queue.get_group_idle(grp.name)
+        run = self.sim.farm.queue.get_group_running(grp.name)
+        return '%s (q=%d,s=%s): (run/idle) %d/%d' % \
+               (grp.name, grp.norm_quota, grp.surplus, run, idle)
+
+    def make_status_layout(self):
+        self._stat_labels = {}
+
+        for n, name in enumerate(reversed(self.sim.display_order())):
+            grp = self.sim.farm.groups.get_by_name(name)
+
+            lbl = QtGui.QLabel(self._format_grpstr(grp))
+            lbl.setObjectName('grpStatInfo_%s' % grp.name)
+            show_plt = QtGui.QCheckBox('Plot')
+            show_plt.setCheckState(2)
+            show_plt.setObjectName('grpPlot_%s' % grp.name)
+            show_plt.setLayoutDirection(QtCore.Qt.RightToLeft)
+            show_plt.stateChanged.connect(self.toggle_to_plot)
+            self._stat_labels[grp.name] = lbl
+            self.statusLayout.addWidget(show_plt, n, 0, QtCore.Qt.AlignRight)
+            self.statusLayout.addWidget(lbl, n, 1)
+
+    def toggle_to_plot(self, state):
+        state = bool(state)
+        group = extract_group(self.sender())
+
+        if len(self.to_plot) <= 1 and not state:
+            self.sender().setCheckState(2)
+            return
+
+        if group in self.to_plot:
+            self.to_plot.discard(group)
+        else:
+            self.to_plot.add(group)
+        self.update_plot()

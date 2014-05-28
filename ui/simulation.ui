@@ -131,7 +131,7 @@
    <widget class="QToolButton" name="toolButton">
     <property name="geometry">
      <rect>
-      <x>770</x>
+      <x>760</x>
       <y>470</y>
       <width>30</width>
       <height>24</height>
@@ -144,7 +144,7 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>640</x>
+      <x>620</x>
       <y>470</y>
       <width>131</width>
       <height>20</height>
@@ -214,16 +214,16 @@
      <string>250ms delay</string>
     </property>
    </widget>
-   <widget class="QWidget" name="verticalLayoutWidget">
+   <widget class="QWidget" name="gridLayoutWidget">
     <property name="geometry">
      <rect>
       <x>210</x>
       <y>460</y>
-      <width>351</width>
-      <height>191</height>
+      <width>381</width>
+      <height>181</height>
      </rect>
     </property>
-    <layout class="QVBoxLayout" name="statusLayout"/>
+    <layout class="QGridLayout" name="statusLayout"/>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>

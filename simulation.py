@@ -11,13 +11,21 @@ import numpy as np
 HOUR = 60 * 60
 
 default_queue_properties = {
-    'grid':     { 'num': 0, 'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
-    'prod':     { 'num': 0, 'avg': 8 * HOUR, 'std': 3 * HOUR},
-    'short':    { 'num': 0, 'avg': 1.2 * HOUR, 'std': 300},
-    'long':     { 'num': 0, 'avg': 16 * HOUR, 'std': 3 * HOUR},
-    'test':     { 'num': 0, 'avg': 8 * HOUR, 'cpu': 3},
-    'mp8':      { 'num': 0, 'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
+    'grid':     { 'num': 5, 'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
+    'prod':     { 'num': 9, 'avg': 8 * HOUR, 'std': 3 * HOUR},
+    'short':    { 'num': 25, 'avg': 1.2 * HOUR, 'std': 300},
+    'long':     { 'num': 12, 'avg': 16 * HOUR, 'std': 3 * HOUR},
+    'test':     { 'num': 22, 'avg': 8 * HOUR, 'cpu': 3},
+    'mp8':      { 'num': 6, 'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
 }
+
+
+def sort_like(array, like):
+    for x in like:
+        if x in array:
+            yield x
+    for x in sorted(set(array) - set(like)):
+        yield x
 
 log = logging.getLogger('sim')
 
@@ -113,7 +121,8 @@ class Simulation(object):
                 self.next_stat = self.farm.time + self.int_stat
 
     def display_order(self):
-        return sorted(self._stat.keys())
+        sort_order = ('short', 'long', 'test', 'prod', 'mp8')
+        return list(sort_like(self._stat.keys(), sort_order))
 
     def make_plotdata(self, groups='all'):
 
