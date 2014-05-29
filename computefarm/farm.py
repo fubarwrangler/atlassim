@@ -82,6 +82,8 @@ class Farm(object):
         for machine in self._m:
             for job in machine:
                 usage[job.group] += self.slotweight(job)
+        for x in usage:
+            self.groups.get_by_name(x).usage = usage[x]
 
         return usage
 
@@ -117,19 +119,24 @@ class Farm(object):
     def sort_groups_by_usage(self):
         """ Return group and usage in negotiation order, least used to most. """
 
-        assert (self.groups is not None)
-
         usage = defaultdict(int)
-        for grp in (x.name for x in self.groups.active_groups()):
-            jobs = self.queue.match_jobs({"group": grp, "state": RUNNING})
-            usage[grp] += sum(self.slotweight(x) for x in jobs)
+        for grp in self.groups.active_groups():
+            jobs = self.queue.match_jobs({"group": grp.name, "state": RUNNING})
+            used = sum(self.slotweight(x) for x in jobs)
+            usage[grp.name] += used
+            grp.usage = used
         return [(x, usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
     def negotiate_jobs(self):
 
         log.info("Negotiate with queue -- %d jobs", len(self.queue))
         quotas = self.groups.calc_quota(self)
-        #surplus = self.calc_surplus(self.groups, )
+        self.get_usage()
+        surplus = {}
+        for x in self.groups.walk():
+            surplus[x.name] = x.calc_surplus()
+        surplus[self.groups.name] = self.groups.calc_surplus()
+        log.info("Surplus: %s", surplus)
 
         for group, usage in self.sort_groups_by_usage():
             quota = quotas[group]

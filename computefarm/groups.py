@@ -12,6 +12,7 @@ class Group(object):
         self.norm_quota = None
         self.demand = 0
         self.usage = 0
+        self.surplus = 0
 
     def add_child(self, name, quota=0, surplus=False):
         new = Group(name, quota=quota, surplus=surplus)
@@ -62,6 +63,9 @@ class Group(object):
             new_g[grp.name] = normed
             grp.norm_quota = normed
         return new_g
+
+    def calc_surplus(self):
+        return sum(x.norm_quota - x.usage for x in self.walk() if x.quota > 0)
 
     def __repr__(self):
         return '<0x%x> %s (%d)' % (id(self), self.name, self.quota)
