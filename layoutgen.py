@@ -22,7 +22,7 @@ class QueueManage(object):
             label = QtGui.QLabel(g.name, self)
             surplus = QtGui.QCheckBox("Surplus", self)
             surplus.setObjectName('surplusBox_%s' % g.name)
-            surplus.setCheckState(2 if g.surplus else 0)
+            surplus.setCheckState(2 if g.accept_surplus else 0)
             surplus.stateChanged.connect(self.set_surplus)
             new_layout.addWidget(label)
             if active:
@@ -66,7 +66,7 @@ class QueueManage(object):
 
     def set_surplus(self, state):
         group = self.sim.farm.groups.get_by_name(extract_group(self.sender()))
-        group.surplus = bool(state)
+        group.accept_surplus = bool(state)
 
 
 class MainStats(object):
@@ -75,7 +75,7 @@ class MainStats(object):
         idle = self.sim.farm.queue.get_group_idle(grp.name)
         run = self.sim.farm.queue.get_group_running(grp.name)
         return '%s (q=%d,s=%s): (run/idle) %d/%d' % \
-               (grp.name, grp.norm_quota, grp.surplus, run, idle)
+               (grp.name, grp.norm_quota, grp.accept_surplus, run, idle)
 
     def make_status_layout(self):
         self._stat_labels = {}

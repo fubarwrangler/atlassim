@@ -18,7 +18,7 @@ class MainWindow(QtGui.QMainWindow, layoutgen.MainStats):
 
         self.sim = Simulation(400, submit_interval=300)
         self.sim.add_jobs()
-        self.sim.farm.groups.calc_quota(self.sim.farm)
+        self.sim.farm.groups.update_quota(self.sim.farm)
 
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.advance_interval)
@@ -48,7 +48,10 @@ class MainWindow(QtGui.QMainWindow, layoutgen.MainStats):
 
     def advance_interval(self):
         self.sim.step(self.stepSize.value())
-        self.timeLabel.setText('t=%d' % self.sim.farm.time)
+        t = self.sim.farm.time
+        st = 't=%d (n in %d, s in %d)' % (t,
+             self.sim.next_negotiate - t, self.sim.next_submit - t)
+        self.timeLabel.setText(st)
         for grp, lbl in self._stat_labels.items():
             group = self.sim.farm.groups.get_by_name(grp)
             lbl.setText(self._format_grpstr(group))

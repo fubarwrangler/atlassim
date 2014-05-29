@@ -117,7 +117,7 @@ class Farm(object):
         self.time += step
 
     def sort_groups_by_usage(self):
-        """ Return group and usage in negotiation order, least used to most. """
+        """ Return group and usage in "starvation" order, least used to most. """
 
         usage = defaultdict(int)
         for grp in self.groups.active_groups():
@@ -127,30 +127,71 @@ class Farm(object):
             grp.usage = used
         return [(x, usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
+    #def allowed_run(self, weight, group):
+
+
     def negotiate_jobs(self):
 
-        log.info("Negotiate with queue -- %d jobs", len(self.queue))
-        quotas = self.groups.calc_quota(self)
+        log.info("Negotiate with %d jobs", len(self.queue))
+        self.groups.update_quota(self)
+        self.groups.update_surplus()
         self.get_usage()
-        surplus = {}
-        for x in self.groups.walk():
-            surplus[x.name] = x.calc_surplus()
-        surplus[self.groups.name] = self.groups.calc_surplus()
-        log.info("Surplus: %s", surplus)
 
-        for group, usage in self.sort_groups_by_usage():
-            quota = quotas[group]
-            log.info("Negotiate for %s: usage=%d quota=%d", group, usage, quota)
-            for job in self.queue.match_jobs({"group": group, "state": IDLE}):
+        group_demand = {}
+        for group in self.groups.walk():
+            jobs = self.queue.match_jobs({"group": group.name, "state": IDLE})
+            group_demand[group.name] = sum(self.slotweight(x) for x in jobs)
+
+        group_demand[group.name]
+
+        for name, usage in self.sort_groups_by_usage():
+            group = self.groups.get_by_name(name)
+            quota = group.norm_quota
+            demand = group_demand[name]
+
+            log.info("Negotiate for %s: usage=%d quota=%d demand=%d", name, usage, quota, demand)
+            for job in self.queue.match_jobs({"group": name, "state": IDLE}):
                 candidate_weight = self.slotweight(job)
+                seek_surplus = False
+                go = 'try for surplus...' if group.accept_surplus else 'end.'
 
                 if usage >= quota:
-                    log.info("Group %s usage(%d) >= quota(%d), end",
-                             group, usage, quota)
-                    break
-                elif usage + candidate_weight > quota:
-                    log.debug("Job '%s' would put '%s' over quota", job, group)
-                    continue
+                    log.info("Group %s usage(%d) >= quota(%d), %s",
+                             name, usage, quota, go)
+                    if not group.accept_surplus:
+                        break
+                    else:
+                        seek_surplus = True
+                elif candidate_weight + usage > quota:
+                    log.debug("Job '%s' would put '%s' over quota, %s", job, name, go)
+                    if not group.accept_surplus:
+                        continue
+                    else:
+                        seek_surplus = True
+
+                if seek_surplus:
+                    avail_surplus = 0
+                    parent = group.parent
+                    while parent:
+                        surplus = min(demand, parent.surplus)
+                        log.info("Group %s allocated %d surplus from %s",
+                                 name, surplus, parent.name)
+                        avail_surplus += surplus
+                        parent.surplus -= surplus
+                        parent = parent.parent
+                        if not parent.accept_surplus:
+                            break
+                    if avail_surplus:
+                        quota += avail_surplus
+                        log.info("Surplus was found for %s (%d), quota now %d",
+                                 name, avail_surplus, quota)
+                    else:
+                        log.info("No surplus available for %s, end.", name)
+                        break
+
+                    if candidate_weight + usage > quota:
+                        log.info('Surplus was not sufficient for job, not matching')
+                        continue
 
                 matching = self.get_slots_fitting(job)
 
@@ -162,3 +203,4 @@ class Farm(object):
                     log.info("Job '%s' matched to slot '%s'", job, best)
                     best.start_job(job)
                     usage += candidate_weight
+                    group.usage += candidate_weight
