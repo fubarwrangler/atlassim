@@ -8,17 +8,13 @@ from machine import Machine
 
 log = logging.getLogger('sim')
 
+largest_first = lambda key: key.totalcpus
+breadth_first = lambda key: key.cpus
+depth_first = lambda key: -key.cpus
 
-def depth_first(key):
-    return -key.cpus
-
-
-def largest_first(key):
-    return key.totalcpus
-
-
-def breadth_first(key):
-    return key.cpus
+# Used internally in negotiation
+END_CYCLE = False
+NOT_ALLOWED = None
 
 
 class Farm(object):
@@ -127,8 +123,54 @@ class Farm(object):
             grp.usage = used
         return [(x, usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
-    #def allowed_run(self, weight, group):
+    def allowed_run(self, job, group, demand):
+        quota = group.norm_quota
+        usage = group.usage
+        name = group.name
 
+        candidate_weight = self.slotweight(job)
+        seek_surplus = False
+
+        go = 'try for surplus...' if group.accept_surplus else 'end.'
+        if usage >= quota:
+            log.info("Group %s usage(%d) >= quota(%d), %s",
+                     name, usage, quota, go)
+            if not group.accept_surplus:
+                return END_CYCLE
+            else:
+                seek_surplus = True
+        elif candidate_weight + usage > quota:
+            log.debug("Job '%s' would put '%s' over quota, %s", job, name, go)
+            if not group.accept_surplus:
+                return NOT_ALLOWED
+            else:
+                seek_surplus = True
+
+        if seek_surplus:
+            avail_surplus = 0
+            parent = group.parent
+            while parent:
+                surplus = min(demand, parent.surplus)
+                log.info("Group %s allocated %d surplus from %s",
+                         name, surplus, parent.name)
+                avail_surplus += surplus
+                parent.surplus -= surplus
+                parent = parent.parent
+                if not parent.accept_surplus:
+                    break
+            if avail_surplus:
+                quota += avail_surplus
+                log.info("Surplus was found for %s (%d), quota now %d",
+                         name, avail_surplus, quota)
+            else:
+                log.info("No surplus available for %s, end.", name)
+                return END_CYCLE
+
+            if candidate_weight + usage > quota:
+                log.info('Surplus was not sufficient for job, not matching')
+                return NOT_ALLOWED
+
+        return candidate_weight
 
     def negotiate_jobs(self):
 
@@ -151,47 +193,13 @@ class Farm(object):
 
             log.info("Negotiate for %s: usage=%d quota=%d demand=%d", name, usage, quota, demand)
             for job in self.queue.match_jobs({"group": name, "state": IDLE}):
-                candidate_weight = self.slotweight(job)
-                seek_surplus = False
-                go = 'try for surplus...' if group.accept_surplus else 'end.'
 
-                if usage >= quota:
-                    log.info("Group %s usage(%d) >= quota(%d), %s",
-                             name, usage, quota, go)
-                    if not group.accept_surplus:
-                        break
-                    else:
-                        seek_surplus = True
-                elif candidate_weight + usage > quota:
-                    log.debug("Job '%s' would put '%s' over quota, %s", job, name, go)
-                    if not group.accept_surplus:
-                        continue
-                    else:
-                        seek_surplus = True
+                weight = self.allowed_run(job, group, demand)
 
-                if seek_surplus:
-                    avail_surplus = 0
-                    parent = group.parent
-                    while parent:
-                        surplus = min(demand, parent.surplus)
-                        log.info("Group %s allocated %d surplus from %s",
-                                 name, surplus, parent.name)
-                        avail_surplus += surplus
-                        parent.surplus -= surplus
-                        parent = parent.parent
-                        if not parent.accept_surplus:
-                            break
-                    if avail_surplus:
-                        quota += avail_surplus
-                        log.info("Surplus was found for %s (%d), quota now %d",
-                                 name, avail_surplus, quota)
-                    else:
-                        log.info("No surplus available for %s, end.", name)
-                        break
-
-                    if candidate_weight + usage > quota:
-                        log.info('Surplus was not sufficient for job, not matching')
-                        continue
+                if weight is END_CYCLE:
+                    break
+                elif weight is NOT_ALLOWED:
+                    continue
 
                 matching = self.get_slots_fitting(job)
 
@@ -202,5 +210,4 @@ class Farm(object):
                 else:
                     log.info("Job '%s' matched to slot '%s'", job, best)
                     best.start_job(job)
-                    usage += candidate_weight
-                    group.usage += candidate_weight
+                    group.usage += weight

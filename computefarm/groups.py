@@ -56,17 +56,19 @@ class Group(object):
     def active_groups(self):
         return (x for x in self.walk() if x.quota > 0)
 
-    def sum_child_quotas(self):
-        return sum(x.quota for x in self.walk())
-
     def __getitem__(self, key):
         return self.children[key]
 
     def update_quota(self, farm):
-        total = self.sum_child_quotas()
+        total = sum(x.quota for x in self.walk())
         size = farm.count_cpus()
         for grp in self.walk():
-            grp.norm_quota = int(round((float(grp.quota) / total) * size))
+            my_quota = int(round((float(grp.quota) / total) * size))
+            grp.norm_quota = my_quota
+
+        for grp in self.walk():
+            child_quotas = sum(x.norm_quota for x in grp.walk())
+            grp.norm_quota += child_quotas
 
     def update_surplus(self):
         for sub in self.walk():
