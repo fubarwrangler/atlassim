@@ -11,12 +11,12 @@ import numpy as np
 HOUR = 60 * 60
 
 default_queue_properties = {
-    'grid':     { 'num': 5, 'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
-    'prod':     { 'num': 9, 'avg': 8 * HOUR, 'std': 3 * HOUR},
-    'short':    { 'num': 25, 'avg': 1.2 * HOUR, 'std': 300},
-    'long':     { 'num': 12, 'avg': 16 * HOUR, 'std': 3 * HOUR},
-    'test':     { 'num': 22, 'avg': 8 * HOUR, 'cpu': 3},
-    'mp8':      { 'num': 6, 'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
+    'grid':     { 'num': 39,  'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
+    'prod':     { 'num': 50,  'avg': 8 * HOUR, 'std': 3 * HOUR},
+    'short':    { 'num': 185, 'avg': 1.2 * HOUR, 'std': 300},
+    'long':     { 'num': 22,  'avg': 16 * HOUR, 'std': 3 * HOUR},
+    'test':     { 'num': 32,  'avg': 8 * HOUR, 'cpu': 3},
+    'mp8':      { 'num': 25,  'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
 }
 
 
@@ -128,9 +128,9 @@ class Simulation(object):
 
         x = np.arange(self._stat_size)
         if groups == 'all':
-            y = np.vstack((v for k, v in sorted(self._stat.iteritems())))
+            y = np.vstack((self._stat[x] for x in self.display_order()))
         else:
-            y = np.vstack((v for k, v in sorted(self._stat.iteritems()) if k in groups))
+            y = np.vstack((self._stat[x] for x in self.display_order() if x in groups))
 
         return x, y
 

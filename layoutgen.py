@@ -80,7 +80,7 @@ class MainStats(object):
     def make_status_layout(self):
         self._stat_labels = {}
 
-        for n, name in enumerate(reversed(self.sim.display_order())):
+        for i, name in enumerate(reversed(self.sim.display_order())):
             grp = self.sim.farm.groups.get_by_name(name)
 
             lbl = QtGui.QLabel(self._format_grpstr(grp))
@@ -91,8 +91,8 @@ class MainStats(object):
             show_plt.setLayoutDirection(QtCore.Qt.RightToLeft)
             show_plt.stateChanged.connect(self.toggle_to_plot)
             self._stat_labels[grp.name] = lbl
-            self.statusLayout.addWidget(show_plt, n, 0, QtCore.Qt.AlignRight)
-            self.statusLayout.addWidget(lbl, n, 1)
+            self.statusLayout.addWidget(show_plt, i, 0, QtCore.Qt.AlignRight)
+            self.statusLayout.addWidget(lbl, i, 1)
 
     def toggle_to_plot(self, state):
         state = bool(state)
