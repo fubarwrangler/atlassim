@@ -11,12 +11,12 @@ import numpy as np
 HOUR = 60 * 60
 
 default_queue_properties = {
-    'grid':     { 'num': 39,  'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
-    'prod':     { 'num': 50,  'avg': 8 * HOUR, 'std': 3 * HOUR},
-    'short':    { 'num': 185, 'avg': 1.2 * HOUR, 'std': 300},
-    'long':     { 'num': 22,  'avg': 16 * HOUR, 'std': 3 * HOUR},
-    'test':     { 'num': 32,  'avg': 8 * HOUR, 'cpu': 3},
-    'mp8':      { 'num': 25,  'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
+    'grid':     { 'num': 0,  'mem': 750, 'avg': HOUR, 'std': 0.6 * HOUR},
+    'prod':     { 'num': 0,  'avg': 8 * HOUR, 'std': 3 * HOUR},
+    'short':    { 'num': 500, 'avg': 1.2 * HOUR, 'std': 600},
+    'long':     { 'num': 500,  'avg': 5 * HOUR, 'std': 2 * HOUR},
+    'test':     { 'num': 0,  'avg': 8 * HOUR, 'cpu': 3},
+    'mp8':      { 'num': 0,  'avg': 6 * HOUR, 'std': 4 * HOUR, 'cpu': 8, 'mem': 6000}
 }
 
 
@@ -80,7 +80,7 @@ class Simulation(object):
         root['atlas'].add_child('production')
         root['atlas'].add_child('analysis')
         root['atlas']['production'].add_child('prod', 40)
-        root['atlas']['production'].add_child('mp8', 30)
+        root['atlas']['production'].add_child('mp8', 5)
         root['atlas']['production'].add_child('test', 7)
         root['atlas']['analysis'].add_child('short', 10)
         root['atlas']['analysis'].add_child('long', 10)

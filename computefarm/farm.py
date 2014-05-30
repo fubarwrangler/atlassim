@@ -81,6 +81,10 @@ class Farm(object):
         for x in usage:
             self.groups.get_by_name(x).usage = usage[x]
 
+        for group in self.groups:
+            if group.children:
+                group.usage = sum(x.usage for x in group.children.values())
+
         return usage
 
     def get_slots_fitting(self, job):
@@ -120,7 +124,7 @@ class Farm(object):
             jobs = self.queue.match_jobs({"group": grp.name, "state": RUNNING})
             used = sum(self.slotweight(x) for x in jobs)
             usage[grp.name] += used
-            grp.usage = used
+            #grp.usage = used
         return [(x, usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
     def allowed_run(self, job, group, demand):
@@ -147,6 +151,8 @@ class Farm(object):
                 seek_surplus = True
 
         if seek_surplus:
+            group.parent.update_surplus()
+            self.print_groups()
             avail_surplus = 0
             parent = group.parent
             while parent:
@@ -154,7 +160,7 @@ class Farm(object):
                 log.info("Group %s allocated %d surplus from %s",
                          name, surplus, parent.name)
                 avail_surplus += surplus
-                parent.surplus -= surplus
+                #parent.surplus -= surplus
                 parent = parent.parent
                 if not parent.accept_surplus:
                     break
@@ -170,7 +176,25 @@ class Farm(object):
                 log.info('Surplus was not sufficient for job, not matching')
                 return NOT_ALLOWED
 
+        parent_ok = self.violate_parent_quota(group, candidate_weight)
+        if parent_ok is END_CYCLE or parent_ok is NOT_ALLOWED:
+            return parent_ok
+
         return candidate_weight
+
+    @staticmethod
+    def violate_parent_quota(group, weight):
+        while group.parent:
+            if group.usage >= group.norm_quota:
+                log.info("Group %s at quota %d (usage=%d)", group.full_name(),
+                         group.norm_quota, group.usage)
+                return END_CYCLE
+            if group.usage + weight > group.norm_quota:
+                log.info("Weight of %d would put group %s over quota %d (usage=%d)",
+                         weight, group.full_name(), group.norm_quota, group.usage)
+                return NOT_ALLOWED
+            group = group.parent
+        return weight
 
     def negotiate_jobs(self):
 
@@ -179,17 +203,16 @@ class Farm(object):
         self.groups.update_surplus()
         self.get_usage()
 
-        group_demand = {}
-        for group in self.groups.walk():
+        for group in self.groups:
             jobs = self.queue.match_jobs({"group": group.name, "state": IDLE})
-            group_demand[group.name] = sum(self.slotweight(x) for x in jobs)
+            group.demand = sum(self.slotweight(x) for x in jobs)
 
-        group_demand[group.name]
+        self.print_groups()
 
         for name, usage in self.sort_groups_by_usage():
             group = self.groups.get_by_name(name)
             quota = group.norm_quota
-            demand = group_demand[name]
+            demand = group.demand
 
             log.info("Negotiate for %s: usage=%d quota=%d demand=%d", name, usage, quota, demand)
             for job in self.queue.match_jobs({"group": name, "state": IDLE}):
@@ -211,3 +234,14 @@ class Farm(object):
                     log.info("Job '%s' matched to slot '%s'", job, best)
                     best.start_job(job)
                     group.usage += weight
+                    parent = group.parent
+                    while parent:
+                        parent.usage += weight
+                        parent.surplus -= weight
+                        parent = parent.parent
+
+    def print_groups(self):
+        for x in self.groups:
+            log.info("%s: usage=%d quota=%d(%d) demand=%d surplus=%d", x.full_name(),
+                     x.usage, x.norm_quota, x.quota, x.demand, x.surplus)
+

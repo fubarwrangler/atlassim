@@ -1,0 +1,8 @@
+Runs on Fedora 20
+
+Requires the following packages, tested with the versions below:
+
+python (>= 2.7.5)
+numpy (>= 1.8.0-4)
+python-matplotlib (>= 1.3.1-3)
+python-matplotlib-qt4 (>= 1.3.1-3)
