@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import computefarm as cf
-from computefarm.farm import depth_first
+from computefarm.farm import depth_first, breadth_first
 import random
 import logging
 
@@ -61,6 +61,12 @@ class Simulation(object):
 
         # How many seconds to simulate each step
         self.sec_per_step = 5
+
+    def _set_neg_df(self):
+        self.farm.set_negotiatior_rank(depth_first)
+
+    def _set_neg_bf(self):
+        self.farm.set_negotiatior_rank(breadth_first)
 
     def _init_stat(self, hist_size):
         self._stat = {}

@@ -151,23 +151,29 @@ class Farm(object):
                 seek_surplus = True
 
         if seek_surplus:
-            group.parent.update_surplus()
+            #group.parent.update_surplus()
             self.print_groups()
             avail_surplus = 0
             parent = group.parent
             while parent:
-                surplus = min(demand, parent.surplus)
+                surplus = max(min(demand - avail_surplus, parent.surplus), 0)
                 log.info("Group %s allocated %d surplus from %s",
-                         name, surplus, parent.name)
+                         name, surplus, parent.full_name())
                 avail_surplus += surplus
-                #parent.surplus -= surplus
-                parent = parent.parent
-                if not parent.accept_surplus:
+
+                if parent.parent and not parent.accept_surplus:
+                    log.info("Group %s no longer accepts surplus", parent.full_name())
                     break
+
+                if not parent.parent:
+                    log.info("Group %s no longer any surplus available", parent.full_name())
+                    break
+                parent = parent.parent
             if avail_surplus:
-                quota += avail_surplus
+                group.norm_quota += avail_surplus
+                quota = group.norm_quota
                 log.info("Surplus was found for %s (%d), quota now %d",
-                         name, avail_surplus, quota)
+                         name, avail_surplus, group.norm_quota)
             else:
                 log.info("No surplus available for %s, end.", name)
                 return END_CYCLE
@@ -185,11 +191,11 @@ class Farm(object):
     @staticmethod
     def violate_parent_quota(group, weight):
         while group.parent:
-            if group.usage >= group.norm_quota:
+            if group.usage >= group.norm_quota and not group.accept_surplus:
                 log.info("Group %s at quota %d (usage=%d)", group.full_name(),
                          group.norm_quota, group.usage)
                 return END_CYCLE
-            if group.usage + weight > group.norm_quota:
+            if group.usage + weight > group.norm_quota and not group.accept_surplus:
                 log.info("Weight of %d would put group %s over quota %d (usage=%d)",
                          weight, group.full_name(), group.norm_quota, group.usage)
                 return NOT_ALLOWED
@@ -198,14 +204,16 @@ class Farm(object):
 
     def negotiate_jobs(self):
 
-        log.info("Negotiate with %d jobs", len(self.queue))
+        log.info("=" * 85)
+        log.info("Negotiate with %d jobs", len([x for x in self.queue if x.state == IDLE]))
         self.groups.update_quota(self)
-        self.groups.update_surplus()
         self.get_usage()
 
         for group in self.groups:
             jobs = self.queue.match_jobs({"group": group.name, "state": IDLE})
             group.demand = sum(self.slotweight(x) for x in jobs)
+            if group.usage > group.norm_quota and group.accept_surplus:
+                group.norm_quota = group.usage
 
         self.print_groups()
 
@@ -213,13 +221,20 @@ class Farm(object):
             group = self.groups.get_by_name(name)
             quota = group.norm_quota
             demand = group.demand
+            self.groups.update_surplus()
+
+            if demand == 0:
+                log.info("No jobs for group %s, skip negotiating", name)
+                continue
 
             log.info("Negotiate for %s: usage=%d quota=%d demand=%d", name, usage, quota, demand)
+            self.print_groups()
             for job in self.queue.match_jobs({"group": name, "state": IDLE}):
 
                 weight = self.allowed_run(job, group, demand)
 
                 if weight is END_CYCLE:
+                    log.info("Done negotiating for group %s", name)
                     break
                 elif weight is NOT_ALLOWED:
                     continue
@@ -239,6 +254,8 @@ class Farm(object):
                         parent.usage += weight
                         parent.surplus -= weight
                         parent = parent.parent
+            else:
+                log.info("No more jobs submitted for group %s", name)
 
     def print_groups(self):
         for x in self.groups:

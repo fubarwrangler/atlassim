@@ -27,9 +27,9 @@ class Group(object):
         self.std = std
 
     def full_name(self):
-        names = list([self.name])
-        parent = self.parent
-        while parent.parent is not None:
+        names = list()
+        parent = self
+        while parent is not None:
             names.append(parent.name)
             parent = parent.parent
         return ".".join(reversed(names))

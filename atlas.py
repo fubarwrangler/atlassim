@@ -25,6 +25,8 @@ class MainWindow(QtGui.QMainWindow, layoutgen.MainStats):
 
         self.quitBtn.clicked.connect(self.close)
         self.stepBtn.clicked.connect(self.advance_interval)
+        self.radioDepthFirst.toggled.connect(self.toggle_fill_algorithm)
+        self.radioBreadthFirst.toggled.connect(self.toggle_fill_algorithm)
         self.startStop.clicked.connect(self.toggle_run)
         self.simspeedSlider.valueChanged.connect(self.change_speed)
         self.to_plot = set(g.name for g in self.sim.farm.groups.active_groups())
@@ -67,6 +69,13 @@ class MainWindow(QtGui.QMainWindow, layoutgen.MainStats):
         for n, grp in enumerate(self.all_groups):
             if grp in self.to_plot:
                 yield colors[n]
+
+    def toggle_fill_algorithm(self, state):
+        if state and 'DepthFirst' in self.sender().objectName():
+            self.sim._set_neg_df()
+        elif state and 'BreadthFirst' in self.sender().objectName():
+            self.sim._set_neg_bf()
+
 
     def toggle_run(self):
         if self.auto_run:
