@@ -16,7 +16,7 @@ class MainWindow(QtGui.QMainWindow, layoutgen.MainStats):
         super(MainWindow, self).__init__(parent)
         uic.loadUi('ui/simulation.ui', self)
 
-        self.sim = Simulation(400, submit_interval=300)
+        self.sim = Simulation(400, negotiate_interval=90, submit_interval=200)
         self.sim.add_jobs()
         self.sim.farm.groups.update_quota(self.sim.farm)
 
@@ -37,6 +37,7 @@ class MainWindow(QtGui.QMainWindow, layoutgen.MainStats):
         self.auto_run = False
 
         self.qedit = ManageQueues(self.sim)
+        self.quitBtn.clicked.connect(self.qedit.close)
         self.toolButton.clicked.connect(self.qedit.show)
         self.make_status_layout()
 
@@ -75,7 +76,6 @@ class MainWindow(QtGui.QMainWindow, layoutgen.MainStats):
             self.sim._set_neg_df()
         elif state and 'BreadthFirst' in self.sender().objectName():
             self.sim._set_neg_bf()
-
 
     def toggle_run(self):
         if self.auto_run:

@@ -32,7 +32,7 @@ log = logging.getLogger('sim')
 
 class Simulation(object):
 
-    def __init__(self, cores, negotiate_interval=150, stat_freq=10, submit_interval=200):
+    def __init__(self, nodes, negotiate_interval=150, stat_freq=10, submit_interval=200):
 
         self.farm = cf.Farm()
         dist = (
@@ -40,7 +40,7 @@ class Simulation(object):
             (32, 90),
             (8, 238),
         )
-        self.farm.generate_from_dist(dist, size=cores)
+        self.farm.generate_from_dist(dist, size=nodes)
 
         root = self.setup_groups(cf.Group('<root>'))
         self.farm.attach_groups(root)
