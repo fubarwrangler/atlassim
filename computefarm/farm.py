@@ -18,6 +18,8 @@ NOT_ALLOWED = None
 
 
 class Farm(object):
+    """
+    """
 
     def __init__(self, ranking=depth_first):
         self._m = list()
@@ -34,9 +36,6 @@ class Farm(object):
 
     def count_memory(self):
         return sum(x.totalmemory for x in self._m)
-
-    def best_machines(self):
-        return sorted(self._m, key=self._jobsorter)
 
     def set_negotiatior_rank(self, fn):
         """ Jobsorter functions need to return the best slot with the
@@ -172,7 +171,6 @@ class Farm(object):
                 seek_surplus = True
 
         if seek_surplus:
-            #group.parent.update_surplus()
             self.print_groups()
             avail_surplus = 0
 

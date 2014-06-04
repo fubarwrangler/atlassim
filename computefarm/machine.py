@@ -32,6 +32,13 @@ class Machine(object):
         return iter(self._jobs)
 
     def start_job(self, job):
+        """ Start a job by deducting the job's requested resources form this
+            machine's available resources and setting the job's machine pointer
+        """
+
+        if self.cpus - job.cpus < 0 or self.memory - job.memory < 0:
+            raise Exception("Bad match, machine %s has too few resources to run %s" % (self, job))
+
         self.cpus -= job.cpus
         self.memory -= job.memory
 
