@@ -7,6 +7,9 @@ log = logging.getLogger('sim')
 
 
 class JobQueue(object):
+    """ A list of job-objects with some methods for querying the queue based on
+        properties of the jobs therein
+    """
 
     def __init__(self):
         self._q = list()
@@ -23,6 +26,13 @@ class JobQueue(object):
         return "\n".join([x.long() for x in self._q])
 
     def match_jobs(self, query):
+        """ Return an iterator of all job objects where the properties match the
+            values represented in @query.
+
+            @query is a mapping of {'key': value}, like
+                {'group': 'short', 'state': IDLE}
+            which would return all idle short jobs
+        """
 
         def check_job(job, query):
             for k, v in query.iteritems():

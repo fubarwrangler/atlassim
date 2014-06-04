@@ -14,11 +14,14 @@ class Machine(object):
     _ids = itertools.count(0)
 
     def __init__(self, cpus=24, memory=None, name=None):
+        """ Machines have two resources, CPUs, and RAM """
 
         self.name = name if name else "node%04d" % self._ids.next()
 
         self.cpus = cpus
         self.totalcpus = cpus
+
+        # Ram defaults to 2Gb * Cores just like in our farm
         self.memory = memory if memory is not None else 1000 * 2 * cpus
         self.totalmemory = self.memory
         self.num_jobs = 0.0
@@ -40,16 +43,20 @@ class Machine(object):
         self.num_jobs += 1
 
     def end_job(self, job):
+        """ Finish a job by recovering the resources used by the job """
+
         self.cpus += job.cpus
         self.memory += job.memory
         self._jobs.remove(job)
         self.num_jobs -= 1
 
     def advance_time(self, step):
+        """ Advance simulation time for each job in this machine """
+
         for job in self._jobs:
             job.advance_time(step)
             if job.state == COMPLETED:
-                log.info("Job %s completed on %s", job, self)
+                log.info("Completed job %s on %s", job, self)
                 self.end_job(job)
 
     def __str__(self):

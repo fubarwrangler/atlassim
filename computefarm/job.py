@@ -20,6 +20,9 @@ class BatchJob(object):
         self.queue = None
 
     def advance_time(self, step):
+        """ Advance time for the individual job, if it exceeds the runtime
+            of the job then mark it completed and remove it from the queue
+        """
         self.runtime += step
         if self.runtime >= self.length:
             self.state = COMPLETED
