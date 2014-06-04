@@ -12,9 +12,13 @@ largest_first = lambda key: key.totalcpus
 breadth_first = lambda key: key.cpus
 depth_first = lambda key: -key.cpus
 
-# Used internally in negotiation
-END_CYCLE = False
-NOT_ALLOWED = None
+
+class EndNegCycle(Exception):
+    pass
+
+
+class JobWouldViolate(Exception):
+    pass
 
 
 class Farm(object):
@@ -142,7 +146,7 @@ class Farm(object):
                      name, usage, quota, go)
             # ...and accept surplus is not set, end, otherwise set surplus flag
             if not group.accept_surplus:
-                return END_CYCLE
+                raise EndNegCycle()
             else:
                 seek_surplus = True
         # Or if a job would put it's group over its quota...
@@ -151,7 +155,7 @@ class Farm(object):
 
             # ...and accept surplus is not set, reject, otherwise set surplus flag
             if not group.accept_surplus:
-                return NOT_ALLOWED
+                raise JobWouldViolate()
             else:
                 seek_surplus = True
 
@@ -187,17 +191,15 @@ class Farm(object):
                          name, avail_surplus, group.norm_quota)
             else:
                 log.info("No surplus available for %s, end.", name)
-                return END_CYCLE
+                raise EndNegCycle()
 
             if candidate_weight + usage > quota:
                 log.info('Surplus was not sufficient for job, not matching')
-                return NOT_ALLOWED
+                raise JobWouldViolate()
 
         # If the group would violate the quota of its group or any of its
         # parent's (already adjusted if needed for surplus counting)
-        violate_quota = self.violate_parent_quota(group, candidate_weight)
-        if violate_quota is END_CYCLE or violate_quota is NOT_ALLOWED:
-            return violate_quota
+        self.violate_parent_quota(group, candidate_weight)
 
         return candidate_weight
 
@@ -210,11 +212,11 @@ class Farm(object):
             if group.usage >= group.norm_quota and not group.accept_surplus:
                 log.info("Group %s at quota %d (usage=%d)", group.full_name(),
                          group.norm_quota, group.usage)
-                return END_CYCLE
+                raise EndNegCycle()
             if group.usage + weight > group.norm_quota and not group.accept_surplus:
                 log.info("Weight of %d would put group %s over quota %d (usage=%d)",
                          weight, group.full_name(), group.norm_quota, group.usage)
-                return NOT_ALLOWED
+                raise JobWouldViolate()
             group = group.parent
         return weight
 
@@ -261,14 +263,12 @@ class Farm(object):
             for job in self.queue.match_jobs({"group": name, "state": IDLE}):
 
                 # See if the job is allowed to run...
-                weight = self.allowed_run(job, group, demand)
-
-                # If the answer is neither of the following, then try to run it...
-                if weight is END_CYCLE:
-                    log.info("Done negotiating for group %s", name)
-                    break
-                elif weight is NOT_ALLOWED:
+                try:
+                    weight = self.allowed_run(job, group, demand)
+                except JobWouldViolate:
                     continue
+                except EndNegCycle:
+                    break
 
                 # Of all slots where job could fit...
                 matching = self.get_slots_fitting(job)
@@ -278,19 +278,20 @@ class Farm(object):
                     best = max(matching, key=self._jobsorter)
                 except ValueError:
                     log.info("No slots found matching job %s", job)
-                else:
-                    log.info("Matched job '%s' to slot '%s'", job, best)
+                    continue
 
-                    # State the job
-                    best.start_job(job)
+                log.info("Matched job '%s' to slot '%s'", job, best)
 
-                    # Update the usage / surplus of the group and all parents up the tree
-                    group.usage += weight
-                    parent = group.parent
-                    while parent:
-                        parent.usage += weight
-                        parent.surplus -= weight
-                        parent = parent.parent
+                # State the job
+                best.start_job(job)
+
+                # Update the usage / surplus of the group and all parents up the tree
+                group.usage += weight
+                parent = group.parent
+                while parent:
+                    parent.usage += weight
+                    parent.surplus -= weight
+                    parent = parent.parent
             else:
                 log.info("No more jobs submitted for group %s", name)
 
