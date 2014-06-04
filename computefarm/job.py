@@ -6,6 +6,9 @@ from computefarm import COMPLETED, IDLE, RUNNING
 class BatchJob(object):
     """ Class representing one job for the batch system """
 
+    __slots__ = ['cpus', 'memory', 'group', 'length', 'current_node',
+                 'slotid', 'state', 'runtime', 'queue']
+
     def __init__(self, cpus=1, memory=None, group="grid", length=3600):
 
         self.cpus = cpus if cpus else 1

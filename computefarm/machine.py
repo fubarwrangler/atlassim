@@ -8,10 +8,13 @@ from computefarm import COMPLETED, RUNNING
 log = logging.getLogger('sim')
 
 
-class Machine(object):
+class Machine(list):
     """ Class representing one machine in a compute cluster """
 
     _ids = itertools.count(0)
+
+    __slots__ = ['name', 'cpus', 'totalcpus', 'memory', 'totalmemory',
+                 'num_jobs']
 
     def __init__(self, cpus=24, memory=None, name=None):
         """ Machines have two resources, CPUs, and RAM """
@@ -26,11 +29,6 @@ class Machine(object):
         self.totalmemory = self.memory
         self.num_jobs = 0.0
 
-        self._jobs = list()
-
-    def __iter__(self):
-        return iter(self._jobs)
-
     def start_job(self, job):
         """ Start a job by deducting the job's requested resources form this
             machine's available resources and setting the job's machine pointer
@@ -42,11 +40,11 @@ class Machine(object):
         self.cpus -= job.cpus
         self.memory -= job.memory
 
-        job.slotid = len(self._jobs)
+        job.slotid = len(self)
         job.state = RUNNING
         job.current_node = self.name
 
-        self._jobs.append(job)
+        self.append(job)
         self.num_jobs += 1
 
     def end_job(self, job):
@@ -54,13 +52,13 @@ class Machine(object):
 
         self.cpus += job.cpus
         self.memory += job.memory
-        self._jobs.remove(job)
+        self.remove(job)
         self.num_jobs -= 1
 
     def advance_time(self, step):
         """ Advance simulation time for each job in this machine """
 
-        for job in self._jobs:
+        for job in self:
             job.advance_time(step)
             if job.state == COMPLETED:
                 log.info("Completed job %s on %s", job, self)
@@ -69,15 +67,15 @@ class Machine(object):
     def __str__(self):
 
         return "%s (%d jobs) (%d/%d cpu) (%d/%d ram)" % \
-               (self.name, len(self._jobs), self.cpus, self.totalcpus,
+               (self.name, len(self), self.cpus, self.totalcpus,
                 self.memory, self.totalmemory)
 
     def long(self):
         s = "%s  (%d jobs) CPUs %2d (%2d) - RAM (%5d) %5d" % \
-            (self.name, len(self._jobs), self.totalcpus - self.cpus, self.totalcpus,
+            (self.name, len(self), self.totalcpus - self.cpus, self.totalcpus,
              self.totalmemory - self.memory, self.totalmemory)
-        if len(self._jobs) > 0:
-            j = "\n    ".join(str(x) for x in self._jobs)
+        if len(self) > 0:
+            j = "\n    ".join(str(x) for x in self)
             return s + "\n    " + j
         else:
             return s
