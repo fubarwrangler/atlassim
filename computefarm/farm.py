@@ -77,23 +77,17 @@ class Farm(object):
     def __str__(self):
         return "\n".join([x.long() for x in self])
 
-    def get_usage(self):
+    def update_usage(self):
         """ Update each group's usage by counting running jobs on the farm,
             each non-leaf group has it's usage set by summing it's children
         """
-        usage = defaultdict(int)
-
-        for machine in self._m:
-            for job in machine:
-                usage[job.group] += self.slotweight(job)
-        for x in usage:
-            self.groups.get_by_name(x).usage = usage[x]
+        for grp in self.groups.active_groups():
+            jobs = self.queue.match_jobs({'group': grp.name, 'state': RUNNING})
+            grp.usage = sum(self.slotweight(x) for x in jobs)
 
         for group in self.groups:
             if group.children:
                 group.usage = sum(x.usage for x in group.children.values())
-
-        return usage
 
     def get_slots_fitting(self, job):
         """ Return all machines where this job could fit """
@@ -114,16 +108,6 @@ class Farm(object):
         for machine in self:
             machine.advance_time(step)
         self.time += step
-
-    def sort_groups_by_usage(self):
-        """ Return group and usage in "starvation" order, least used to most. """
-
-        usage = defaultdict(int)
-        for grp in self.groups.active_groups():
-            jobs = self.queue.match_jobs({"group": grp.name, "state": RUNNING})
-            used = sum(self.slotweight(x) for x in jobs)
-            usage[grp.name] += used
-        return [(x, usage[x]) for x in sorted(usage, key=lambda x: usage[x])]
 
     def allowed_run(self, job, group, demand):
         """ Determine if a job is able to run in its group, accounting for quota
@@ -229,10 +213,11 @@ class Farm(object):
         # Recalculate actual quotas if they've been adjusted by the user
         self.groups.update_quota(self)
         # Update the usage of each group
-        self.get_usage()
+        self.update_usage()
 
         for group in self.groups:
             jobs = self.queue.match_jobs({"group": group.name, "state": IDLE})
+            group.orig_quota = group.norm_quota
 
             # Demand is number of idle jobs in the queue
             group.demand = sum(self.slotweight(x) for x in jobs)
@@ -246,8 +231,9 @@ class Farm(object):
         self.print_groups()
 
         # For each group in correct order...
-        for name, usage in self.sort_groups_by_usage():
-            group = self.groups.get_by_name(name)
+        for group in self.sort_groups_by_usage():
+            name = group.name
+            usage = group.usage
             quota = group.norm_quota
             demand = group.demand
             self.groups.update_surplus()
@@ -294,6 +280,16 @@ class Farm(object):
                     parent = parent.parent
             else:
                 log.info("No more jobs submitted for group %s", name)
+
+    def sort_groups_by_usage(self):
+        """ Return group and usage in "starvation" order, least used to most. """
+
+        groups = list(self.groups.active_groups())
+        groups = [(x, float(x.usage) / x.orig_quota, x.name) for x in groups]
+        groups.sort(key=lambda x: x[1])
+        log.info([x[1:] for x in groups])
+
+        return (x[0] for x in groups)
 
     def print_groups(self):
         for x in self.groups:

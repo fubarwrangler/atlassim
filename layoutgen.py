@@ -73,9 +73,8 @@ class MainStats(object):
 
     def _format_grpstr(self, grp):
         idle = self.sim.farm.queue.get_group_idle(grp.name)
-        run = self.sim.farm.queue.get_group_running(grp.name)
         return '%s (q=%d,s=%s): (run/idle) %d/%d' % \
-               (grp.name, grp.norm_quota, grp.accept_surplus, run, idle)
+               (grp.name, grp.norm_quota, grp.accept_surplus, grp.usage, idle)
 
     def make_status_layout(self):
         self._stat_labels = {}

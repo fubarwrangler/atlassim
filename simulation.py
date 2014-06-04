@@ -89,12 +89,12 @@ class Simulation(object):
             self._stat[x.name] = np.zeros((hist_size), int)
 
     def _update_stat(self):
-        usage = self.farm.get_usage()
-        for g in (x.name for x in self.farm.groups.active_groups()):
+        self.farm.update_usage()
+        for g in self.farm.groups.active_groups():
             # Left-shift entire array back by one, so element n -> element n - 1
-            self._stat[g] = np.roll(self._stat[g], -1)
+            self._stat[g.name] = np.roll(self._stat[g.name], -1)
             # New last element is current update
-            self._stat[g][-1] = usage[g]
+            self._stat[g.name][-1] = g.usage
 
     def setup_groups(self, root):
         """ Reflects current ATLAS group structure:
