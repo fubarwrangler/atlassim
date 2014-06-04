@@ -64,11 +64,11 @@ class Group(object):
         raise Exception("No group %s found" % name)
 
     def names(self):
-        return (x.name for x in self.walk())
+        return (x.name for x in self)
 
     def active_groups(self):
         """ Active groups are leaf nodes -- i.e. nodes with a quota """
-        return (x for x in self.walk() if x.quota > 0)
+        return (x for x in self if x.quota > 0)
 
     def __getitem__(self, key):
         return self.children[key]
@@ -77,24 +77,24 @@ class Group(object):
         """ Recalculate the actual quotas for each group, based on a farm of
             a given size.
         """
-        total = sum(x.quota for x in self.walk())
+        total = sum(x.quota for x in self)
         size = farm.count_cpus()
 
         # First calculate quota for leaf nodes (groups with .quota > 0)
-        for grp in self.walk():
+        for grp in self:
             # will be 0 for non-leaf nodes
             my_quota = int(round((float(grp.quota) / total) * size))
             grp.norm_quota = my_quota
 
         # Now set intermediate nodes to have quotas=sum of all children
-        for grp in self.walk():
-            child_quotas = sum(x.norm_quota for x in grp.walk())
+        for grp in self:
+            child_quotas = sum(x.norm_quota for x in grp)
             grp.norm_quota += child_quotas
 
     def update_surplus(self):
         """ Surplus is un-used slots by a groups children """
-        for sub in self.walk():
-            sub.surplus = sum(x.norm_quota - x.usage for x in sub.walk() if x.quota > 0)
+        for sub in self:
+            sub.surplus = sum(x.norm_quota - x.usage for x in sub if x.quota > 0)
 
     def __repr__(self):
         return '<0x%x> %s (%d)' % (id(self), self.name, self.quota)
@@ -103,7 +103,7 @@ class Group(object):
         return iter(self.walk())
 
     def __contains__(self, key):
-        return (len([x.name for x in self.walk() if x.name == key]) > 0)
+        return (len([x.name for x in self if x.name == key]) > 0)
 
     def __str__(self):
         return '%s: surplus %s, quota %d, num %d' % \

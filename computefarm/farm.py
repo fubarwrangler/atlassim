@@ -96,21 +96,6 @@ class Farm(object):
 
         return (x for x in self if x.cpus >= job.cpus and x.memory >= job.memory)
 
-    # TODO: not needed?
-    def match_slots(self, query):
-
-        def check_machine(machine, query):
-            for k, v in query.iteritems():
-                if getattr(machine, k) != v:
-                    return False
-            return True
-
-        return (x for x in self if check_machine(x, query))
-
-    # TODO: not needed?
-    def sort_by(self, sort_fn):
-        return sorted(self, key=sort_fn)
-
     def attach_queue(self, q):
         self.queue = q
 
@@ -138,7 +123,7 @@ class Farm(object):
 
     def allowed_run(self, job, group, demand):
         """ Determine if a job is able to run in its group, accounting for quota
-            usage and searchin for surplus from parent groups if available and
+            usage and searching for surplus from parent groups if available and
             accept_surplus is set.
         """
 
